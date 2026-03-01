@@ -30,6 +30,8 @@
     "card": {
       "sourceLink": "View source",
       "impactScore": "Impact",
+      "impactScoreTooltip": "Business impact score — higher means more people affected if this slips",
+      "openSource": "Open source message",
       "dueIn": "Due in {{days}} days",
       "overdue": "Overdue by {{days}} days",
       "dueToday": "Due today",

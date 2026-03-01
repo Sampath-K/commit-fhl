@@ -2,6 +2,7 @@ using CommitApi.Config;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
 
 namespace CommitApi.Tests.Services;
 
@@ -42,16 +43,16 @@ public class FeatureFlagServiceTests
     [Theory]
     [InlineData("commit.feature.psychologyLayer")]
     [InlineData("commit.feature.deliveryScore")]
-    public async Task IsEnabledAsync_KnownFlag_PilotEnvironment_ReturnsFalse()
+    public async Task IsEnabledAsync_KnownFlag_PilotEnvironment_ReturnsFalse(string flagName)
     {
         // Arrange — all flags default to OFF in pilot until explicitly enabled in App Config
         var service = CreateService(env: "pilot");
 
         // Act
-        var result = await service.IsEnabledAsync("commit.feature.psychologyLayer");
+        var result = await service.IsEnabledAsync(flagName);
 
         // Assert
-        result.Should().BeFalse(because: "flags should default to false in pilot without App Config");
+        result.Should().BeFalse(because: $"{flagName} should default to false in pilot without App Config");
     }
 
     [Fact]

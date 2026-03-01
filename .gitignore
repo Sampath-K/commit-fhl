@@ -15,6 +15,13 @@ build/
 out/
 target/
 
+# C# / .NET build outputs
+bin/
+obj/
+*.user
+.vs/
+*.suo
+
 # Test coverage
 coverage/
 .nyc_output/

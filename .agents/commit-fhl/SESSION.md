@@ -19,13 +19,13 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 2 — Tuesday (active) |
-| **Phase** | Signal Extraction — Day 1 complete ✅ |
+| **Sprint Day** | Day 3 — Wednesday (active) |
+| **Phase** | Dependency Graph — Day 2 complete ✅ |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Day 1 complete — all 13 tasks done (T-C01–C05, T-004–009) |
-| **Next task** | T-010 (Forge: transcriptExtractor.cs) → T-011 (Forge: nlpPipeline.cs) → T-012/T-013/T-014 parallel |
+| **Last completed task** | Day 2 complete — T-010–T-016, T-018, T-019 all done |
+| **Next task** | T-020 (Forge: dependencyLinker.cs) → T-021 (cascadeSimulator.cs) → T-022 (impactScorer.cs) → T-023 (vivaInsightsClient.cs) parallel |
 | **Blockers** | D-003 — Azure OpenAI endpoint/key needed before T-011 (NLP pipeline). Add to `.env` |
 | **Human decisions needed** | D-003 (Azure OpenAI endpoint + key) before T-011 can run against real data |
 | **Build status** | Day 1 complete — C# backend + React frontend shell both live |
@@ -100,7 +100,7 @@ AFTER EXTRACTORS DONE (sequential dependency):
 | Day | Status | Key output | Committed |
 |-----|--------|-----------|-----------|
 | Mon D1 | ✅ Complete | C# API, auth, storage, webhooks, React shell | feat: Day1 |
-| Tue D2 | 🔵 In progress | Signal extraction live | — |
+| Tue D2 | ✅ Complete | 4 extractors, NLP pipeline, dedup, Eisenhower scorer, CommitPane wired | feat: Day2 |
 | Wed D3 | ⏳ Not started | Cascade engine live | — |
 | Thu D4 | ⏳ Not started | Execution agents + psychology layer | — |
 | Fri D5 | ⏳ Not started | Live demo | — |

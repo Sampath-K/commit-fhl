@@ -4,9 +4,11 @@ import {
   CardHeader,
   Text,
   Badge,
+  Button,
   Divider,
   Skeleton,
   SkeletonItem,
+  Tooltip,
   tokens,
   makeStyles,
 } from '@fluentui/react-components';
@@ -49,6 +51,18 @@ const useStyles = makeStyles({
   atRiskBadge: {
     backgroundColor: tokens.colorStatusWarningBackground1,
     color: tokens.colorStatusWarningForeground1,
+  },
+  impactChip: {
+    backgroundColor: tokens.colorNeutralBackground3,
+    color: tokens.colorNeutralForeground2,
+    fontSize: tokens.fontSizeBase100,
+  },
+  sourceLink: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorBrandForeground1,
+    minWidth: 'unset',
+    padding: '0 2px',
+    height: 'auto',
   },
   emptyState: {
     display: 'flex',
@@ -143,18 +157,35 @@ function CommitCard({
               <Text weight="semibold" truncate>
                 {commitment.title}
               </Text>
-              {isAtRisk && (
-                <Badge appearance="filled" className={styles.atRiskBadge}>
-                  {t('commitPane.card.impactScore')}: {commitment.impactScore}
-                </Badge>
+              {/* T-019: Impact score chip — visible on all cards */}
+              {commitment.impactScore > 0 && (
+                <Tooltip content={t('commitPane.card.impactScoreTooltip')} relationship="description">
+                  <Badge
+                    appearance="tint"
+                    className={isAtRisk ? styles.atRiskBadge : styles.impactChip}
+                  >
+                    {t('commitPane.card.impactScore')}: {commitment.impactScore}
+                  </Badge>
+                </Tooltip>
               )}
             </div>
           }
           description={
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <Text size={100} className={styles.sourceIcon}>
-                {SOURCE_ICONS[commitment.source.type] ?? '\u{1F4CC}'}
-              </Text>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* T-019: Clickable source link */}
+              <Tooltip content={t('commitPane.card.openSource')} relationship="description">
+                <Button
+                  as="a"
+                  href={commitment.source.url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  appearance="transparent"
+                  className={styles.sourceLink}
+                  aria-label={t('commitPane.card.openSource')}
+                >
+                  {SOURCE_ICONS[commitment.source.type] ?? '\u{1F4CC}'}
+                </Button>
+              </Tooltip>
               {daysUntilDue !== null && (
                 <Text size={100} className={styles.sourceIcon}>
                   {daysUntilDue < 0
@@ -248,7 +279,7 @@ export function CommitPane({ commitments, isLoading, onCommitmentClick }: Commit
             <Text className={styles.quadrantLabel}>{quadrantLabels[quadrant]}</Text>
             {items.map((c, idx) => (
               <CommitCard
-                key={c.rowKey}
+                key={c.id}
                 commitment={c}
                 onClick={() => onCommitmentClick?.(c)}
                 delay={idx * 40}

@@ -1,10 +1,16 @@
 using System.Text;
+using System.Text.Json;
 using Azure.Data.AppConfiguration;
 using Azure.Data.Tables;
 using CommitApi.Auth;
 using CommitApi.Config;
+using CommitApi.Entities;
 using CommitApi.Exceptions;
+using CommitApi.Extractors;
+using CommitApi.Models;
+using CommitApi.Models.Extraction;
 using CommitApi.Repositories;
+using CommitApi.Services;
 using CommitApi.Webhooks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Identity.Web;
@@ -47,6 +53,21 @@ builder.Services.AddSingleton(sp =>
         sp.GetRequiredService<ILogger<WebhookHandler>>(),
         sp.GetRequiredService<IAppInsightsClient>(),
         clientState));
+
+// ─── HttpClient factory (Graph + ADO) ─────────────────────────────────────────
+builder.Services.AddHttpClient("graph");
+builder.Services.AddHttpClient("ado");
+
+// ─── Signal Extractors (T-010, T-012, T-013, T-014) ───────────────────────────
+builder.Services.AddSingleton<ITranscriptExtractor, TranscriptExtractor>();
+builder.Services.AddSingleton<IChatExtractor, ChatExtractor>();
+builder.Services.AddSingleton<IEmailExtractor, EmailExtractor>();
+builder.Services.AddSingleton<IAdoExtractor, AdoExtractor>();
+
+// ─── NLP + Pipeline Services (T-011, T-015, T-016) ───────────────────────────
+builder.Services.AddSingleton<INlpPipeline, NlpPipeline>();
+builder.Services.AddSingleton<IDeduplicationService, DeduplicationService>();
+builder.Services.AddSingleton<IEisenhowerScorer, EisenhowerScorer>();
 
 // ─── Feature Flags ─────────────────────────────────────────────────────────────
 ConfigurationClient? appConfigClient = appConfigConn is not null
@@ -152,8 +173,9 @@ api.MapGet("/health", async (HttpContext http, IGraphClientFactory graphFactory)
 // GET /api/v1/commitments/{userId}
 api.MapGet("/commitments/{userId}", async (string userId, ICommitmentRepository repo) =>
 {
-    var items = await repo.ListByOwnerAsync(userId);
-    return Results.Ok(new { success = true, data = items, requestId = Guid.NewGuid() });
+    var entities = await repo.ListByOwnerAsync(userId);
+    var dtos     = entities.Select(CommitmentResponse.From).ToList();
+    return Results.Ok(new { success = true, data = dtos, requestId = Guid.NewGuid() });
 })
 .WithName("ListCommitments")
 .WithOpenApi();
@@ -213,6 +235,94 @@ api.MapPost("/subscriptions", async (HttpContext http, ISubscriptionManager subs
     return Results.Ok(new { success = true, subscriptionIds = ids });
 })
 .WithName("EnsureSubscriptions")
+.WithOpenApi();
+
+// POST /api/v1/extract — trigger signal extraction for the caller (T-010–T-016)
+api.MapPost("/extract", async (
+    HttpContext http,
+    ITranscriptExtractor transcripts,
+    IChatExtractor chats,
+    IEmailExtractor emails,
+    IAdoExtractor ado,
+    INlpPipeline nlp,
+    IDeduplicationService dedup,
+    IEisenhowerScorer scorer,
+    ICommitmentRepository repo,
+    IAppInsightsClient insights) =>
+{
+    var token  = ExtractBearerToken(http)
+        ?? throw new AuthException("Authorization header required");
+    var userId = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(userId))
+        throw new ValidationException("userId query parameter is required");
+
+    // ── Run all four extractors concurrently ──────────────────────────────────
+    var t1 = transcripts.GetChunksAsync(token);
+    var t2 = chats.ExtractAsync(token);
+    var t3 = emails.ExtractAsync(token);
+    var t4 = ado.ExtractAsync(userId, token);
+    await Task.WhenAll(t1, t2, t3, t4);
+    var transcriptChunks = t1.Result;
+    var chatRaw          = t2.Result;
+    var emailRaw         = t3.Result;
+    var adoRaw           = t4.Result;
+
+    // ── NLP pipeline on transcript chunks ────────────────────────────────────
+    var transcriptRaw = await nlp.ExtractFromChunksAsync(transcriptChunks);
+
+    // ── Merge all sources ─────────────────────────────────────────────────────
+    var allRaw = transcriptRaw
+        .Concat(chatRaw)
+        .Concat(emailRaw)
+        .Concat(adoRaw)
+        .ToList();
+
+    // ── Deduplicate ────────────────────────────────────────────────────────────
+    var deduped = dedup.Deduplicate(allRaw);
+
+    // ── Persist with Eisenhower priority ─────────────────────────────────────
+    var upserted = 0;
+    foreach (var raw in deduped)
+    {
+        var priority = scorer.Score(raw);
+        var entity = new CommitmentEntity
+        {
+            PartitionKey      = userId,
+            RowKey            = Guid.NewGuid().ToString(),
+            Title             = raw.Title,
+            Owner             = userId,
+            WatchersJson      = JsonSerializer.Serialize(raw.WatcherUserIds),
+            SourceType        = raw.SourceType.ToString(),
+            SourceUrl         = raw.SourceUrl,
+            SourceTimestamp   = raw.ExtractedAt,
+            CommittedAt       = raw.ExtractedAt,
+            DueAt             = raw.DueAt,
+            Priority          = priority,
+            Status            = "pending",
+            ImpactScore       = 0,  // scored by cascade engine (Day 3)
+        };
+
+        await repo.UpsertAsync(entity);
+        upserted++;
+    }
+
+    insights.TrackUserAction("extract", PiiScrubber.HashValue(userId), "commitments", new Dictionary<string, string>
+    {
+        ["raw"]     = allRaw.Count.ToString(),
+        ["deduped"] = deduped.Count.ToString(),
+        ["sources"] = "transcript,chat,email,ado"
+    });
+
+    return Results.Ok(new
+    {
+        success    = true,
+        extracted  = allRaw.Count,
+        deduped    = deduped.Count,
+        upserted,
+        requestId  = http.TraceIdentifier
+    });
+})
+.WithName("ExtractCommitments")
 .WithOpenApi();
 
 app.Run();

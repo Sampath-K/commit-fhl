@@ -88,8 +88,9 @@ public sealed class AppInsightsClient : IAppInsightsClient
 
         if (_client is not null)
         {
-            _client.TrackMetric($"CommitPerf_{operationName}", duration.TotalMilliseconds, props.Count,
-                duration.TotalMilliseconds, duration.TotalMilliseconds, duration.TotalMilliseconds, props);
+            var metric = new MetricTelemetry($"CommitPerf_{operationName}", duration.TotalMilliseconds);
+            foreach (var kv in props) metric.Properties[kv.Key] = kv.Value;
+            _client.TrackMetric(metric);
         }
         else
         {

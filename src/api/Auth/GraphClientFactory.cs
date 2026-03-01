@@ -45,8 +45,7 @@ public sealed class GraphClientFactory : IGraphClientFactory
             _tenantId,
             _clientId,
             _clientSecret,
-            bearerToken,
-            new TokenCredentialOptions());
+            bearerToken);
 
         return new GraphServiceClient(credential, GraphScopes);
     }

@@ -5,6 +5,7 @@ using CommitApi.Exceptions;
 using CommitApi.Repositories;
 using FluentAssertions;
 using Moq;
+using Xunit;
 
 namespace CommitApi.Tests.Repositories;
 

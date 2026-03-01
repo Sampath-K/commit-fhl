@@ -1,5 +1,6 @@
 using CommitApi.Config;
 using FluentAssertions;
+using Xunit;
 
 namespace CommitApi.Tests.Services;
 
