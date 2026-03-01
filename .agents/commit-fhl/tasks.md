@@ -1,0 +1,123 @@
+# Commit FHL — Task List
+> Agent reads this to find the next task.
+> Update status: [ ] = pending, [~] = in progress, [x] = done, [!] = blocked
+> Every task is tagged `[Agent: X]` — only build tasks assigned to you.
+
+---
+
+## Status Legend
+- `[ ]` Pending
+- `[~]` In progress (current session)
+- `[x]` Done (committed to git)
+- `[!]` Blocked — see decisions.md for what's needed
+- `[H]` Human task — surface to human, then move to next Agent task
+
+---
+
+## Day 1 — Monday: Define, Scaffold & Setup
+*Goal: Working Teams app shell with Graph auth, data model defined, webhooks registering.*
+*Constitution, team, and platform foundations all live.*
+
+- [x] **T-001** `[Human]` Define the 3 Friday demo success metrics → decisions.md D-001
+- [x] **T-002** `[Human]` Confirm tech stack (TypeScript / Teams Toolkit / Azure OpenAI) → decisions.md D-002
+- [x] **T-003** `[Human]` Provide Azure subscription + tenant details → decisions.md D-003
+
+### Day 1 — Platform & Setup (Shield)
+- [ ] **T-C01** `[Agent: Shield]` Set up Azure App Configuration. Implement `src/api/src/config/FeatureFlagService.ts` with `isEnabled(flagName, userId?)` interface. Configure labels dev/pilot/ga. Add feature flag for `commit.feature.psychologyLayer`, `commit.feature.deliveryScore`, `commit.feature.streakTracking`. **Done when**: `FeatureFlagService.isEnabled('commit.feature.psychologyLayer')` returns `true` in dev, `false` in pilot (config-driven).
+- [ ] **T-C03** `[Agent: Shield]` Add Application Insights SDK to `src/api/`. Implement `AppInsightsClient.ts` (4 event types: userAction, error, performance, businessKpi) and `PiiScrubber.ts` middleware (strips message body, hashes display names, removes title text from telemetry). **Done when**: A test event emitted in dev shows in App Insights with no PII fields present.
+
+### Day 1 — Frontend Foundation (Canvas)
+- [ ] **T-C02** `[Agent: Canvas]` Set up react-i18next in `src/app/`. Configure Teams locale as the locale driver. Create `src/app/src/locales/en/translation.json` and `src/app/src/locales/en/psychology.json`. Add ESLint rule `i18next/no-literal-string` (build fails on hardcoded strings). **Done when**: ESLint fails on a test hardcoded string, passes after moving to translation.json.
+
+### Day 1 — Test Infrastructure (Lens)
+- [ ] **T-C04** `[Agent: Lens]` Configure Jest (unit + integration), Stryker mutation testing (score threshold ≥ 80%), and Playwright with 4-viewport fixture matrix (320px, 360px, 600px, 1024px). Create `jest.config.ts`, `stryker.config.json`, `playwright.config.ts`. Create test fixture factory scaffold in `tests/fixtures/commitmentFactory.ts`. **Done when**: `npm test` runs (even with 0 tests), Playwright reports all 4 viewports configured.
+
+### Day 1 — Demo Data Scaffold (Seed)
+- [ ] **T-C05** `[Agent: Seed]` Scaffold `scripts/seed-demo.ts` and `scripts/flush-demo.ts`. Define the 6 demo personas (Alex, Priya, Marcus, Fatima, David, Sarah) in `scripts/personas/`. Define 3 cascade chain skeletons in `scripts/scenarios/`. Scripts can run but API calls are stubbed until API is ready. **Done when**: `npx ts-node scripts/seed-demo.ts --dry-run` outputs the 6 personas and 3 chain structures without errors.
+
+### Day 1 — Backend Scaffold (Forge)
+- [ ] **T-004** `[Agent: Shield]` Initialize Teams Toolkit v5 project scaffold in `src/`. Verify local dev server starts and tab loads in Teams web client. **Done when**: `npm run dev` shows Teams tab loading in browser without errors.
+- [ ] **T-005** `[Agent: Forge]` Set up MSAL OBO auth flow. Implement `src/api/src/auth/msalClient.ts` and `src/api/src/auth/graphClient.ts`. Test by calling `GET /me`. **Done when**: `/api/v1/health` returns `{ user: "Alice Smith", graphConnected: true }`.
+- [ ] **T-006** `[Agent: Forge]` Define ALL TypeScript interfaces in `src/api/src/types/index.ts`: `CommitmentRecord`, `GraphEdge`, `AgentDraft`, `CascadeResult`, `AppError` hierarchy (ValidationError, GraphError, StorageError, AiError), `EisenhowerQuadrant`, `CommitmentSource`, `UserActionEvent`, `BusinessKpiEvent`. **Done when**: TypeScript compiles with zero errors, zero `any` types.
+- [ ] **T-007** `[Agent: Forge]` Implement `src/api/src/graph/commitmentStore.ts` with CRUD: `upsert`, `get`, `listByOwner`, `listBlocking`. Use Azurite for local dev. Write 5 Jest unit tests (Stryker score ≥ 80%). **Done when**: All 5 tests pass, mutation score ≥ 80%.
+- [ ] **T-008** `[Agent: Forge]` Register Graph change notification subscriptions for `/me/chats/getAllMessages` and `/me/mailFolders/inbox/messages`. Implement `src/api/src/webhooks/subscriptionManager.ts` and `webhookHandler.ts` with HMAC signature validation. **Done when**: Teams DM received → webhook fires → log shows payload.
+- [ ] **T-009** `[Agent: Canvas]` Build empty CommitPane React component. Show Morning Digest card (T-C02 i18n required) with Fluent UI skeleton shimmer while loading. Wire to `/api/v1/commitments` stub returning empty array. **Done when**: Tab loads in Teams with Morning Digest skeleton, no console errors, all strings from translation.json.
+
+**Day 1 commit target**: `git commit -m "feat: Day1 complete — auth, storage, webhooks, shell, platform foundations"`
+
+---
+
+## Day 2 — Tuesday: Signal Extraction
+*Goal: Real commitments flowing from 4 sources into the pane.*
+
+- [ ] **T-010** `[Agent: Forge]` Implement `src/api/src/extractors/transcriptExtractor.ts`. Fetch last 7 days of meeting transcripts via Graph. Chunk text by speaker. **Done when**: Returns `TranscriptChunk[]` with speakerName, userId, text, meetingId.
+- [ ] **T-011** `[Agent: Forge]` Implement `src/api/src/extractors/nlpPipeline.ts`. Send transcript chunks to Azure OpenAI with the extraction prompt from plan.md. Return `RawCommitment[]`. **Done when**: On a real transcript, extracts ≥1 commitment with owner, task, confidence > 0.75.
+- [ ] **T-012** `[Agent: Forge]` Implement `src/api/src/extractors/chatExtractor.ts`. Fetch Teams DMs and channel messages from last 3 days. Filter to messages with action-intent signals. **Done when**: Returns `RawCommitment[]` from at least one real Teams thread.
+- [ ] **T-013** `[Agent: Forge]` Implement `src/api/src/extractors/emailExtractor.ts`. Fetch unread/flagged Outlook emails from last 7 days. **Done when**: Returns at least 1 `RawCommitment` from a real inbox.
+- [ ] **T-014** `[Agent: Forge]` Implement `src/api/src/extractors/adoExtractor.ts`. Fetch ADO PR threads with unresolved review requests. **Done when**: Returns `RawCommitment[]` for at least 1 open PR.
+- [ ] **T-015** `[Agent: Forge]` Implement deduplication engine. Merge commitments that refer to the same task (fuzzy title match + same owner + same source context window). **Done when**: Running pipeline twice on same data produces same output (idempotent).
+- [ ] **T-016** `[Agent: Forge]` Implement Eisenhower priority scorer. Urgent = due < 48hrs or pinging watchers. Important = blocks others or has exec watchers. **Done when**: All `CommitmentRecord` objects have non-null `priority` field.
+- [H] **T-017** `[Human]` Review first real extraction results. Decide on NLP threshold adjustment → decisions.md D-004. Agent should surface 10 real examples for human review.
+- [ ] **T-018** `[Agent: Canvas]` Wire extracted commitments into CommitPane. Display real data in Eisenhower board layout with Fluent v9 components. Show source icon per commitment (meeting/chat/email/ADO). All strings from translation.json. **Done when**: Pane shows real user commitments from ≥ 2 sources, fully i18n compliant.
+- [ ] **T-019** `[Agent: Canvas]` Add impact score chip (placeholder 0 until Day 3) and source link (clicking opens the original meeting/chat/email). **Done when**: Every card has clickable source link and impact score chip, works at all 4 breakpoints.
+
+**Day 2 commit target**: `git commit -m "feat: Day2 complete — 4 extractors live, real data in pane"`
+
+---
+
+## Day 3 — Wednesday: Dependency Graph & Cascade Engine
+*Goal: Live cascade simulation — slip detected before it reaches downstream.*
+
+- [ ] **T-020** `[Agent: Forge]` Implement `src/api/src/graph/dependencyLinker.ts`. Link commitments using 3 signals: same conversation thread, overlapping people, NLP title similarity > 0.7. Store as `GraphEdge`. **Done when**: At least 3 edges detected in real data.
+- [ ] **T-021** `[Agent: Forge]` Implement `src/api/src/graph/cascadeSimulator.ts` using BFS algorithm from plan.md. Input: rootTaskId, slipDays. Output: CascadeResult with affected tasks, new ETAs, calendar pressure. **Done when**: Unit test with 5-task synthetic chain correctly propagates 2-day slip.
+- [ ] **T-022** `[Agent: Forge]` Implement `src/api/src/graph/impactScorer.ts`. Score = (people × 10) + (calendar hrs × 5) + (exec visibility × 20) + (days to date dep × -2). Cap at 100. **Done when**: Score on 5-task test chain is between 30-60.
+- [ ] **T-023** `[Agent: Forge]` Integrate Viva Insights. Implement `src/api/src/capacity/vivaInsightsClient.ts`. Compute loadIndex and burnoutTrend. **Done when**: `/api/v1/capacity` returns `{ loadIndex: 0.94, burnoutTrend: +0.12, freeSlots: [{ start, end }] }`.
+- [ ] **T-024** `[Agent: Forge]` Build real-time risk detection. Poll at-risk tasks (no activity > 24hrs AND due < 48hrs) → trigger cascade simulation. Run on 15-min schedule. **Done when**: Task with no activity for 24hrs shows elevated impact score.
+- [H] **T-025** `[Human]` Review cascade simulation on 2 real at-risk tasks. Validate impact scores. Adjust weights if needed → decisions.md D-005.
+- [ ] **T-026** `[Agent: Forge]` Implement `src/api/src/replan/replanGenerator.ts`. For a given cascade: Option A (resolve fast), Option B (parallel work), Option C (clean slip + auto-comms). **Done when**: Generator returns 3 distinct options with different confidence levels.
+- [ ] **T-027** `[Agent: Canvas]` Build CascadeView component. Show dependency chain visually. At-risk tasks highlighted. Impact score prominent. "View replan options" button. Cascade items stagger-reveal on open (psychology.config.ts STAGGER_DELAYS.cascadeItems). DeliveryScore donut shows live. **Done when**: Clicking an at-risk task shows cascade with 3 replan buttons. All 4 viewports. Reduced motion compliant.
+
+**Day 3 commit target**: `git commit -m "feat: Day3 complete — cascade engine live, replan generator working"`
+
+---
+
+## Day 4 — Thursday: Execution Agents, Approval UX & Psychology Layer
+*Goal: Agent drafts flowing through one-click approval. Psychology layer live. System is end-to-end.*
+
+- [ ] **T-028** `[Agent: Forge]` Build Adaptive Card template for agent drafts. Fields: context strip, draft content, Approve/Edit/Skip buttons. Must render in Teams desktop, web, mobile. **Done when**: Card renders in Teams Adaptive Card Designer with no validation errors.
+- [ ] **T-029** `[Agent: Forge]` Implement `src/api/src/agents/statusUpdateDrafter.ts`. Given replan (Option C chosen), generate personalized Teams message per watcher. **Done when**: 3 different watchers get 3 different appropriately-scoped messages.
+- [ ] **T-030** `[Agent: Forge]` Implement overcommit firewall. Intercept when user takes on a task at load > 90%. Show Adaptive Card warning with load breakdown and alternatives. **Done when**: Demo shows warning appearing before message sent.
+- [ ] **T-031** `[Agent: Forge]` Implement `src/api/src/agents/calendarBlocker.ts`. Find next available 2hr focus slot. Create calendar event via `POST /me/events`. **Done when**: Agent creates a real calendar event on pilot user's calendar.
+- [ ] **T-032** `[Agent: Forge]` Implement `src/api/src/agents/prReviewDrafter.ts`. Fetch ADO PR diff and thread context. Generate structured review comment draft. Surface via Adaptive Card. **Done when**: Draft generated for a real open PR.
+- [ ] **T-C07** `[Agent: Canvas]` Implement full psychology layer. Build all 8 components in `src/app/src/components/psychology/`: DeliveryScore (animated donut 0-100, trend arrow, tap-to-explain breakdown), StreakBadge (fire icon, milestone celebration at 3/7/14/30 days), CompetencyLevel (5-tier badge, XP bar, "X away from Level N"), CelebrationLayer (particle system: taskComplete/firstWin/levelUp/streak/dayWrap variants), MorningDigest (stagger-reveal with SPRING_CONFIGS.gentle, InsightCard leading with reciprocity value), FocusMode (blur/dim all others, expand selected), MotivationalNudge (message pool ≥ 20 phrases, max 1 variable reward/session). Build hooks: useDeliveryScore, useStreak, useCompetencyLevel, usePsychologyEvents. Build `psychology.config.ts` with all spring configs, stagger delays, durations. Build `useReducedMotion.ts`. **Done when**: All 8 components render, all animations have reduced-motion fallback, all strings in psychology.json, Delivery Score tap-to-explain works, max 3 triggers/day enforced.
+- [H] **T-033** `[Human]` End-to-end UX review. Test full approval flow + psychology layer feel. Approve communication templates → decisions.md D-006.
+- [ ] **T-034** `[Agent: Forge]` Wire approval buttons to actions. Approve → execute. Edit → compose box. Skip → dismiss + human-handled. Log all approval decisions as telemetry. **Done when**: Full approval loop works end-to-end in Teams.
+- [ ] **T-035** `[Agent: Lens]` Integration test suite: 15 tests covering full pipeline (transcript → commitment → cascade → replan → approval card). See lens.md for the 15 test definitions. **Done when**: All 15 pass. Stryker score ≥ 80%.
+
+**Day 4 commit target**: `git commit -m "feat: Day4 complete — execution agents live, psychology layer live, full approval loop working"`
+
+---
+
+## Day 5 — Friday: Demo Prep & Live Demo
+*Goal: 4PM demo of a live working system on real M365 tenant.*
+
+- [ ] **T-C06** `[Agent: Forge]` Implement DELETE `/api/v1/users/{userId}/data` right-to-erasure endpoint. Deletes all commitments, edges, and sessions for the specified userId. Logs the erasure event (no PII). **Done when**: DELETE call removes all user data from Azurite, returns 204, erasure logged in App Insights.
+- [ ] **T-036** `[Agent: Seed]` Load demo environment. Run seed-demo.ts for 3 at-risk tasks + 1 cascade chain (Cascade A) with 4 people. Verify all agents respond to seed data. **Done when**: Demo scenario runs end-to-end on clean tenant.
+- [H] **T-037** `[Human]` Write the demo script: 3-minute story, which features to highlight, the live cascade moment, the one-click approval moment → decisions.md D-007.
+- [ ] **T-038** `[Agent: Forge]` Performance pass: transcript → commitment < 5 min, cascade simulation < 10s, Adaptive Card renders < 2s. Add timing logs. **Done when**: All 3 latency targets met on demo tenant.
+- [ ] **T-039** `[Agent: Seed]` Run verify-demo.ts smoke test checklist. All 6 feature areas green. Write results to `.agents/commit-fhl/demo-readiness.md`. **Done when**: All 6 green.
+- [H] **T-040** `[Human]` 4PM: Live demo to stakeholders.
+
+---
+
+## Backlog (post-FHL)
+
+- SharePoint document comment mining
+- Loop component task extraction
+- Manager escalation flows
+- Multi-tenant deployment
+- Fabric learning pipeline for ETA prediction improvement
+- Cross-team dependency view (team-level cascade map)
+- Power BI dashboard for org-wide delivery health
+- Enhanced psychology: peer comparison (anonymized), team delivery leaderboard
+- Offline mode with sync on reconnect

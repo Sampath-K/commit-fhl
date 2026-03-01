@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commit FHL — Day 1 Report</title>
+<style>
+  :root {
+    --blue: #0078d4; --green: #107c10; --orange: #d83b01;
+    --purple: #8764b8; --teal: #00b294; --yellow: #d4a300;
+    --bg: #f3f2f1; --card: #ffffff; --border: #e0e0e0;
+    --text: #1a1a1a; --muted: #616161;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* ── Header ── */
+  header { background: #0f3460; color: white; padding: 20px 32px; }
+  .header-nav { font-size: 12px; opacity: 0.6; margin-bottom: 12px; }
+  .header-nav a { color: white; text-decoration: none; }
+  .header-nav a:hover { text-decoration: underline; }
+  .header-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .header-title h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-title p  { font-size: 14px; opacity: 0.7; margin-top: 4px; }
+  .header-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+  .hm-item { background: rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 16px; text-align: center; }
+  .hm-item .v { font-size: 20px; font-weight: 800; display: block; }
+  .hm-item .l { font-size: 10px; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* ── Body layout ── */
+  .body { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
+
+  /* ── Confidence ── */
+  .conf-section {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 28px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .conf-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .conf-track { flex: 1; min-width: 160px; height: 14px; background: #eee; border-radius: 7px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, #107c10, #00b294); }
+  .conf-pct { font-size: 26px; font-weight: 800; color: #107c10; }
+  .conf-updated { font-size: 12px; color: var(--muted); }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* ── Task grid ── */
+  .task-grid { display: flex; flex-direction: column; gap: 8px; }
+  .task-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+  }
+  .task-row.done     { border-left: 4px solid var(--green); }
+  .task-row.active   { border-left: 4px solid var(--blue); background: #f7fbff; }
+  .task-row.blocked  { border-left: 4px solid var(--orange); background: #fff8f6; }
+  .task-row.pending  { border-left: 4px solid #ddd; }
+  .task-row.human    { border-left: 4px solid var(--purple); background: #fbf9ff; }
+
+  .task-id { font-size: 11px; font-family: monospace; color: var(--muted); min-width: 48px; font-weight: 700; }
+  .task-name { flex: 1; font-size: 14px; font-weight: 600; }
+  .task-note { font-size: 12px; color: var(--muted); }
+  .task-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .task-status {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    padding: 3px 10px; border-radius: 10px; white-space: nowrap;
+  }
+  .ts-done    { background: #dff0df; color: var(--green); }
+  .ts-active  { background: #deeaf6; color: var(--blue); }
+  .ts-blocked { background: #fde8df; color: var(--orange); }
+  .ts-pending { background: #f0f0f0; color: var(--muted); }
+  .ts-human   { background: #ede8f8; color: var(--purple); }
+
+  /* ── Timeline feed ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .tl-item { position: relative; margin-bottom: 14px; }
+  .tl-item::before {
+    content: ''; position: absolute;
+    left: -20px; top: 6px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--muted); border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--border);
+  }
+  .tl-item.milestone::before { background: var(--teal); box-shadow: 0 0 0 2px var(--teal); }
+  .tl-item.blocker::before   { background: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+  .tl-item.fix::before       { background: var(--purple); box-shadow: 0 0 0 2px var(--purple); }
+  .tl-item.human::before     { background: var(--blue); box-shadow: 0 0 0 2px var(--blue); }
+  .tl-item.agent::before     { background: var(--green); box-shadow: 0 0 0 2px var(--green); }
+
+  .tl-time { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .tl-text { font-size: 13px; color: var(--text); }
+  .tl-detail { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .tl-tag { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; margin-left: 6px; text-transform: uppercase; }
+
+  /* ── Blockers table ── */
+  .blockers { display: flex; flex-direction: column; gap: 10px; }
+  .blocker-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; border-left: 4px solid var(--orange);
+  }
+  .blocker-card.resolved { border-left-color: var(--green); background: #f9fef9; }
+  .blocker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .blocker-title { font-size: 13px; font-weight: 700; }
+  .blocker-body { font-size: 12px; color: var(--muted); }
+
+  /* ── Decisions ── */
+  .decision-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; border-left: 4px solid var(--purple);
+    margin-bottom: 8px;
+  }
+  .decision-card.pending { border-left-color: var(--yellow); }
+  .dec-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .dec-id { font-size: 11px; font-family: monospace; font-weight: 700; color: var(--muted); }
+  .dec-title { font-size: 13px; font-weight: 700; }
+  .dec-body { font-size: 12px; color: var(--muted); }
+
+  /* ── EOD summary ── */
+  .eod-box {
+    background: #1a1a2e; color: white; border-radius: 12px;
+    padding: 28px 32px; margin-top: 8px;
+  }
+  .eod-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .eod-box .sub { font-size: 13px; opacity: 0.6; margin-bottom: 20px; }
+  .eod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .eod-stat { text-align: center; }
+  .eod-stat .n { font-size: 32px; font-weight: 800; display: block; }
+  .eod-stat .l { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.8px; }
+  .eod-text { font-size: 14px; line-height: 1.7; opacity: 0.85; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 18px; }
+  .eod-placeholder { opacity: 0.4; font-style: italic; font-size: 14px; text-align: center; padding: 20px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px; }
+
+  /* ── Footer ── */
+  footer { text-align: center; padding: 20px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 8px; }
+  code { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-nav">
+    <a href="Commit_Sprint_Dashboard.html">← Sprint Dashboard</a>
+    &nbsp;/&nbsp; Day 1 Report
+  </div>
+  <div class="header-main">
+    <div class="header-title">
+      <h1>Day 1 — Define &amp; Scaffold</h1>
+      <p>Monday, March 2, 2026 &nbsp;·&nbsp; Goal: Working Teams app shell with Graph auth, storage, and webhooks live</p>
+    </div>
+    <div class="header-meta">
+      <div class="hm-item">
+        <span class="v" id="tasks-done">0</span>
+        <span class="l">Tasks done</span>
+      </div>
+      <div class="hm-item">
+        <span class="v">6</span>
+        <span class="l">Tasks today</span>
+      </div>
+      <div class="hm-item">
+        <span class="v" id="conf-val">—</span>
+        <span class="l">Day confidence</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="body">
+
+  <!-- ── Confidence ── -->
+  <div class="conf-section">
+    <div class="conf-title">Day 1 Confidence</div>
+    <div class="conf-track"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+    <div class="conf-pct" id="conf-pct">—</div>
+    <div class="conf-updated" id="conf-updated">Updated at end of day by agent</div>
+  </div>
+
+  <!-- ── Tasks ── -->
+  <div class="section">
+    <div class="section-title">Tasks — Day 1 (6 Agent + 3 Human decisions needed first)</div>
+    <div class="task-grid">
+
+      <div class="task-row human" id="T-001">
+        <div class="task-id">T-001</div>
+        <div class="task-name">Define 3 Friday demo success metrics</div>
+        <div class="task-note">Fill in D-001 in decisions.md · needed before coding starts</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-human">Human</div>
+      </div>
+
+      <div class="task-row human" id="T-002">
+        <div class="task-id">T-002</div>
+        <div class="task-name">Confirm tech stack</div>
+        <div class="task-note">D-002 already Made (Azure OpenAI, Node 22, Azurite)</div>
+        <div class="task-time">2026-03-01</div>
+        <div class="task-status ts-human">Done ✓</div>
+      </div>
+
+      <div class="task-row human" id="T-003">
+        <div class="task-id">T-003</div>
+        <div class="task-name">Provide Azure credentials</div>
+        <div class="task-note">D-003 mostly done — Azure OpenAI endpoint + key filled in</div>
+        <div class="task-time">2026-03-01</div>
+        <div class="task-status ts-human">Done ✓</div>
+      </div>
+
+      <div class="task-row pending" id="T-004">
+        <div class="task-id">T-004</div>
+        <div class="task-name">Initialize Teams Toolkit project at src/commit/</div>
+        <div class="task-note">npm run dev → tab loads in Teams web client</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-pending">Pending</div>
+      </div>
+
+      <div class="task-row pending" id="T-005">
+        <div class="task-id">T-005</div>
+        <div class="task-name">Set up MSAL OBO auth flow</div>
+        <div class="task-note">/api/health returns { user: "Alice Smith", graphConnected: true }</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-pending">Pending</div>
+      </div>
+
+      <div class="task-row pending" id="T-006">
+        <div class="task-id">T-006</div>
+        <div class="task-name">Define TypeScript interfaces</div>
+        <div class="task-note">CommitmentRecord, GraphEdge, AgentDraft, CascadeResult → compiles clean</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-pending">Pending</div>
+      </div>
+
+      <div class="task-row pending" id="T-007">
+        <div class="task-id">T-007</div>
+        <div class="task-name">Set up Azure Table Storage (Azurite)</div>
+        <div class="task-note">commitmentStore.ts with CRUD · 5 Jest unit tests passing</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-pending">Pending</div>
+      </div>
+
+      <div class="task-row pending" id="T-008">
+        <div class="task-id">T-008</div>
+        <div class="task-name">Register Graph change notifications</div>
+        <div class="task-note">Webhooks for chats + inbox · signature validated · log shows payload</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-pending">Pending</div>
+      </div>
+
+      <div class="task-row pending" id="T-009">
+        <div class="task-id">T-009</div>
+        <div class="task-name">Build empty CommitPane component</div>
+        <div class="task-note">Tab loads in Teams · no console errors · /api/commitments returns []</div>
+        <div class="task-time">—</div>
+        <div class="task-status ts-pending">Pending</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Live timeline ── -->
+  <div class="section">
+    <div class="section-title">Live Timeline — Updated to the minute</div>
+    <div class="timeline" id="timeline">
+
+      <div class="tl-item milestone">
+        <div class="tl-time">2026-03-01 ~14:00</div>
+        <div class="tl-text">
+          Pre-sprint complete — 19/19 checks green, all credentials wired
+          <span class="tl-tag" style="background:#d6f5ef;color:#006b55">Pre-sprint Milestone</span>
+        </div>
+        <div class="tl-detail">App Registration · Azurite · Azure OpenAI (commit-fhl.openai.azure.com / gpt-5-chat) · 9 Graph scopes</div>
+      </div>
+
+      <div class="tl-item human" style="opacity:0.45">
+        <div class="tl-time">Monday morning</div>
+        <div class="tl-text" style="font-style:italic">[ Waiting for D-001: define 3 success metrics ]</div>
+        <div class="tl-detail">This unlocks T-004 and the full Day 1 build sequence</div>
+      </div>
+
+      <!-- Agent appends timestamped entries here as tasks complete -->
+      <!-- FORMAT:
+      <div class="tl-item agent">
+        <div class="tl-time">2026-03-02 HH:MM</div>
+        <div class="tl-text">
+          T-004 complete — Teams Toolkit project initialized, dev server running
+          <span class="tl-tag" style="background:#dff0df;color:#0a5c0a">Agent</span>
+        </div>
+        <div class="tl-detail">src/commit/ created · npm run dev → tab loads at localhost:53000</div>
+      </div>
+      -->
+
+    </div>
+  </div>
+
+  <!-- ── Decisions ── -->
+  <div class="section">
+    <div class="section-title">Decisions — Day 1</div>
+
+    <div class="decision-card" style="border-left-color:var(--green)">
+      <div class="dec-header">
+        <div class="dec-id">D-002</div>
+        <span class="task-status ts-done">Made ✓</span>
+      </div>
+      <div class="dec-title">Tech stack confirmed</div>
+      <div class="dec-body">TypeScript + Node 22 · Teams Toolkit v5 · Azure OpenAI (gpt-5-chat) · Azurite · Jest + Playwright</div>
+    </div>
+
+    <div class="decision-card" style="border-left-color:var(--green)">
+      <div class="dec-header">
+        <div class="dec-id">D-003</div>
+        <span class="task-status ts-done">Made ✓</span>
+      </div>
+      <div class="dec-title">Azure credentials set</div>
+      <div class="dec-body">TENANT_ID · CLIENT_ID · CLIENT_SECRET · AZURE_STORAGE_CONN (Azurite) · AZURE_OPENAI_ENDPOINT · KEY · DEPLOYMENT all in .env</div>
+    </div>
+
+    <div class="decision-card pending">
+      <div class="dec-header">
+        <div class="dec-id">D-001</div>
+        <span class="task-status ts-human">Needed Monday AM</span>
+      </div>
+      <div class="dec-title">Friday demo success metrics</div>
+      <div class="dec-body">What are the 3 metrics we show at 4PM Friday to prove this worked? Options: extraction precision &gt;85%, latency &lt;5min, cascade detection 100%, 1-click approval, 0 status pings from pilot users...</div>
+    </div>
+
+  </div>
+
+  <!-- ── Blockers ── -->
+  <div class="section">
+    <div class="section-title">Blockers</div>
+    <div class="blockers">
+
+      <div class="blocker-card resolved">
+        <div class="blocker-header">
+          <div class="blocker-title">Work tenant blocks client secrets</div>
+          <span class="task-status ts-done">Resolved ✓</span>
+        </div>
+        <div class="blocker-body">Fix: Switched to M365 Developer E5 sandbox (7k2cc2.onmicrosoft.com)</div>
+      </div>
+
+      <div class="blocker-card resolved">
+        <div class="blocker-header">
+          <div class="blocker-title">jq not installed — setup script failed</div>
+          <span class="task-status ts-done">Resolved ✓</span>
+        </div>
+        <div class="blocker-body">Fix: Rewrote setup-env.sh using az --query throughout. Zero external dependencies.</div>
+      </div>
+
+      <div class="blocker-card resolved">
+        <div class="blocker-header">
+          <div class="blocker-title">Azure OpenAI: personal account subscription unreachable via CLI</div>
+          <span class="task-status ts-done">Resolved ✓</span>
+        </div>
+        <div class="blocker-body">Fix: User fetched endpoint + key directly from portal.azure.com and pasted values. Simpler and faster.</div>
+      </div>
+
+      <!-- Agent appends new blockers here -->
+      <!-- FORMAT:
+      <div class="blocker-card">
+        <div class="blocker-header">
+          <div class="blocker-title">[Blocker description]</div>
+          <span class="task-status ts-blocked">Open</span>
+        </div>
+        <div class="blocker-body">[What is blocking and what is needed to unblock]</div>
+      </div>
+      -->
+
+    </div>
+  </div>
+
+  <!-- ── End-of-day executive summary ── -->
+  <div class="section">
+    <div class="section-title">End-of-Day Executive Summary</div>
+    <div class="eod-box">
+      <h3>Day 1 Summary</h3>
+      <div class="sub">Written by agent at end of day — confidence score, key outputs, tomorrow's plan</div>
+
+      <div class="eod-placeholder" id="eod-placeholder">
+        Summary will be written here at end of Day 1 (Monday evening).<br><br>
+        Will include: tasks completed, blockers hit/resolved, confidence for Day 2,<br>
+        what's live and what still needs attention.
+      </div>
+
+      <!-- Agent replaces placeholder with this block at EOD:
+      <div class="eod-grid">
+        <div class="eod-stat"><span class="n" style="color:#00b294">X/6</span><span class="l">Tasks complete</span></div>
+        <div class="eod-stat"><span class="n" style="color:#00b294">X%</span><span class="l">Day confidence</span></div>
+        <div class="eod-stat"><span class="n" style="color:#ffb900">X</span><span class="l">Blockers hit</span></div>
+        <div class="eod-stat"><span class="n" style="color:#00b294">X</span><span class="l">Blockers resolved</span></div>
+      </div>
+      <div class="eod-text">
+        [2-4 sentences: what is live, what surprised us, confidence for the week, one thing to watch]
+      </div>
+      -->
+
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Day 1 Report &nbsp;·&nbsp; <a href="Commit_Sprint_Dashboard.html">← Dashboard</a> &nbsp;·&nbsp;
+  Agent updates this file after each completed task &nbsp;·&nbsp; Last updated: 2026-03-01 (pre-sprint)
+</footer>
+
+</body>
+</html>
