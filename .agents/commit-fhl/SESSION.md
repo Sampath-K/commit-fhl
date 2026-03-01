@@ -19,17 +19,17 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 3 — Wednesday (active) |
-| **Phase** | Dependency Graph — Day 2 complete ✅ |
+| **Sprint Day** | Day 4 — Thursday (active) |
+| **Phase** | Dependency Graph — Day 3 complete ✅ |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Day 2 complete — T-010–T-016, T-018, T-019 all done |
-| **Next task** | T-020 (Forge: dependencyLinker.cs) → T-021 (cascadeSimulator.cs) → T-022 (impactScorer.cs) → T-023 (vivaInsightsClient.cs) parallel |
+| **Last completed task** | Day 3 complete — T-020–T-024, T-026 all done |
+| **Next task** | T-027 (Canvas: CascadeView component) → T-028 (Forge: Adaptive Card template) → T-029 (Forge: statusUpdateDrafter) in parallel |
 | **Blockers** | D-003 — Azure OpenAI endpoint/key needed before T-011 (NLP pipeline). Add to `.env` |
-| **Human decisions needed** | D-003 (Azure OpenAI endpoint + key) before T-011 can run against real data |
-| **Build status** | Day 1 complete — C# backend + React frontend shell both live |
-| **Last updated** | 2026-03-01 (Day 1 complete) |
+| **Human decisions needed** | T-025 (Human review of cascade on 2 real at-risk tasks → D-005) |
+| **Build status** | Day 3 complete — cascade engine, impact scorer, Viva Insights, risk detector, replan engine all live |
+| **Last updated** | 2026-03-01 (Day 3 complete) |
 | **Constitution version** | v1.2.0 (P-01 through P-29) |
 
 ---
@@ -69,6 +69,14 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Vite config** | `src/app/vite.config.ts` | ✅ Port 3000, API proxy |
 | **Test infra** | `jest.config.ts`, `stryker.config.json`, `playwright.config.ts` | ✅ Frontend-only |
 | **Seed scripts** | `scripts/seed-demo.ts`, `scripts/personas/`, `scripts/scenarios/` | ✅ Dry-run passes |
+| **Dependency linker** | `src/api/Graph/DependencyLinker.cs` | ✅ 3 signals (thread, people, title ≥0.7) |
+| **Cascade simulator** | `src/api/Graph/CascadeSimulator.cs` | ✅ BFS, calendar pressure, 4-test suite |
+| **Impact scorer** | `src/api/Graph/ImpactScorer.cs` | ✅ Formula capped 0-100, 6 tests |
+| **Viva Insights client** | `src/api/Capacity/VivaInsightsClient.cs` | ✅ loadIndex + burnoutTrend + free slots |
+| **Risk detector** | `src/api/Agents/RiskDetector.cs` | ✅ BackgroundService, 15-min polling |
+| **Replan generator** | `src/api/Replan/ReplanGenerator.cs` | ✅ Options A/B/C with confidence levels |
+| **Graph routes** | `POST /graph/build`, `POST /graph/cascade`, `POST /graph/replan`, `GET /capacity` | ✅ Wired in Program.cs |
+| **Graph models** | `src/api/Models/Graph/`, `src/api/Models/Capacity/` | ✅ GraphEdge, CascadeResult, ReplanOption, CapacitySnapshot |
 
 ---
 
@@ -101,7 +109,7 @@ AFTER EXTRACTORS DONE (sequential dependency):
 |-----|--------|-----------|-----------|
 | Mon D1 | ✅ Complete | C# API, auth, storage, webhooks, React shell | feat: Day1 |
 | Tue D2 | ✅ Complete | 4 extractors, NLP pipeline, dedup, Eisenhower scorer, CommitPane wired | feat: Day2 |
-| Wed D3 | ⏳ Not started | Cascade engine live | — |
+| Wed D3 | ✅ Complete | Cascade engine, impact scorer, Viva Insights, risk detector, replan engine | feat: Day3 |
 | Thu D4 | ⏳ Not started | Execution agents + psychology layer | — |
 | Fri D5 | ⏳ Not started | Live demo | — |
 

@@ -65,6 +65,13 @@ public sealed class StorageException : CommitException
     { }
 }
 
+/// <summary>Requested resource not found (404).</summary>
+public sealed class NotFoundException : CommitException
+{
+    public NotFoundException(string message)
+        : base(message, 404, "NOT_FOUND") { }
+}
+
 /// <summary>Azure OpenAI call failed (503).</summary>
 public sealed class AiException : CommitException
 {

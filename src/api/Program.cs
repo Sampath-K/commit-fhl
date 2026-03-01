@@ -2,13 +2,17 @@ using System.Text;
 using System.Text.Json;
 using Azure.Data.AppConfiguration;
 using Azure.Data.Tables;
+using CommitApi.Agents;
 using CommitApi.Auth;
+using CommitApi.Capacity;
 using CommitApi.Config;
 using CommitApi.Entities;
 using CommitApi.Exceptions;
 using CommitApi.Extractors;
+using CommitApi.Graph;
 using CommitApi.Models;
 using CommitApi.Models.Extraction;
+using CommitApi.Replan;
 using CommitApi.Repositories;
 using CommitApi.Services;
 using CommitApi.Webhooks;
@@ -68,6 +72,16 @@ builder.Services.AddSingleton<IAdoExtractor, AdoExtractor>();
 builder.Services.AddSingleton<INlpPipeline, NlpPipeline>();
 builder.Services.AddSingleton<IDeduplicationService, DeduplicationService>();
 builder.Services.AddSingleton<IEisenhowerScorer, EisenhowerScorer>();
+
+// ─── Dependency Graph + Cascade Engine (T-020, T-021, T-022, T-023, T-026) ──
+builder.Services.AddSingleton<IDependencyLinker, DependencyLinker>();
+builder.Services.AddSingleton<ICascadeSimulator, CascadeSimulator>();
+builder.Services.AddSingleton<IImpactScorer, ImpactScorer>();
+builder.Services.AddSingleton<IVivaInsightsClient, VivaInsightsClient>();
+builder.Services.AddSingleton<IReplanGenerator, ReplanGenerator>();
+
+// ─── Risk Detector (T-024) — 15-min background polling ───────────────────────
+builder.Services.AddHostedService<RiskDetector>();
 
 // ─── Feature Flags ─────────────────────────────────────────────────────────────
 ConfigurationClient? appConfigClient = appConfigConn is not null
@@ -313,6 +327,9 @@ api.MapPost("/extract", async (
         ["sources"] = "transcript,chat,email,ado"
     });
 
+    // ── Register user for risk detection ─────────────────────────────────────
+    RiskDetector.RegisteredUsers[userId] = DateTimeOffset.UtcNow;
+
     return Results.Ok(new
     {
         success    = true,
@@ -323,6 +340,141 @@ api.MapPost("/extract", async (
     });
 })
 .WithName("ExtractCommitments")
+.WithOpenApi();
+
+// POST /api/v1/graph/build?userId=X — build dependency graph (T-020)
+api.MapPost("/graph/build", async (
+    HttpContext http,
+    IDependencyLinker linker,
+    IAppInsightsClient insights) =>
+{
+    var token  = ExtractBearerToken(http)
+        ?? throw new AuthException("Authorization header required");
+    var userId = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(userId))
+        throw new ValidationException("userId query parameter is required");
+
+    RiskDetector.RegisteredUsers[userId] = DateTimeOffset.UtcNow;
+    var edges = await linker.BuildGraphAsync(userId, token);
+
+    insights.TrackUserAction("graph-build", PiiScrubber.HashValue(userId), "graph",
+        new Dictionary<string, string> { ["edges"] = edges.Count.ToString() });
+
+    return Results.Ok(new { success = true, edgeCount = edges.Count, requestId = Guid.NewGuid() });
+})
+.WithName("BuildDependencyGraph")
+.WithOpenApi();
+
+// POST /api/v1/graph/cascade?rootTaskId=X&userId=U&slipDays=N — cascade simulation (T-021, T-022)
+api.MapPost("/graph/cascade", async (
+    HttpContext http,
+    ICascadeSimulator cascade,
+    IImpactScorer scorer,
+    ICommitmentRepository repo,
+    IAppInsightsClient insights) =>
+{
+    var rootTaskId = http.Request.Query["rootTaskId"].ToString();
+    var userId     = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(rootTaskId) || string.IsNullOrEmpty(userId))
+        throw new ValidationException("rootTaskId and userId query parameters are required");
+
+    if (!int.TryParse(http.Request.Query["slipDays"], out var slipDays) || slipDays < 0)
+        slipDays = 1;
+
+    var result    = await cascade.SimulateAsync(rootTaskId, userId, slipDays);
+    var allIds    = result.AffectedTasks.Select(t => t.TaskId).ToHashSet();
+    var allItems  = await repo.ListByOwnerAsync(userId);
+    var affected  = allItems.Where(e => allIds.Contains(e.RowKey)).ToList();
+    var impactScore = scorer.Score(result, affected);
+
+    // Persist updated impact score onto the root task
+    var root = affected.FirstOrDefault(e => e.RowKey == rootTaskId);
+    if (root is not null)
+    {
+        root.ImpactScore = impactScore;
+        await repo.UpsertAsync(root);
+    }
+
+    insights.TrackUserAction("cascade", PiiScrubber.HashValue(userId), "graph",
+        new Dictionary<string, string>
+        {
+            ["affected"] = result.TotalTasksAffected.ToString(),
+            ["score"]    = impactScore.ToString(),
+            ["slipDays"] = slipDays.ToString()
+        });
+
+    return Results.Ok(new
+    {
+        success     = true,
+        rootTaskId,
+        slipDays,
+        impactScore,
+        affectedCount = result.TotalTasksAffected,
+        affectedTasks = result.AffectedTasks,
+        requestId   = Guid.NewGuid()
+    });
+})
+.WithName("SimulateCascade")
+.WithOpenApi();
+
+// GET /api/v1/capacity?userId=X — Viva Insights capacity snapshot (T-023)
+api.MapGet("/capacity", async (
+    HttpContext http,
+    IVivaInsightsClient viva,
+    IAppInsightsClient insights) =>
+{
+    var token  = ExtractBearerToken(http)
+        ?? throw new AuthException("Authorization header required");
+    var userId = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(userId))
+        throw new ValidationException("userId query parameter is required");
+
+    RiskDetector.RegisteredUsers[userId] = DateTimeOffset.UtcNow;
+    var snapshot = await viva.GetCapacityAsync(userId, token);
+
+    insights.TrackUserAction("capacity", PiiScrubber.HashValue(userId), "capacity",
+        new Dictionary<string, string>
+        {
+            ["loadIndex"]    = snapshot.LoadIndex.ToString("F2"),
+            ["burnoutTrend"] = snapshot.BurnoutTrend.ToString("F2")
+        });
+
+    return Results.Ok(new
+    {
+        success      = true,
+        loadIndex    = snapshot.LoadIndex,
+        burnoutTrend = snapshot.BurnoutTrend,
+        freeSlots    = snapshot.FreeSlots,
+        requestId    = Guid.NewGuid()
+    });
+})
+.WithName("GetCapacity")
+.WithOpenApi();
+
+// POST /api/v1/graph/replan?rootTaskId=X&userId=U — replan options (T-026)
+api.MapPost("/graph/replan", async (
+    HttpContext http,
+    ICascadeSimulator cascade,
+    IReplanGenerator replan,
+    IAppInsightsClient insights) =>
+{
+    var rootTaskId = http.Request.Query["rootTaskId"].ToString();
+    var userId     = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(rootTaskId) || string.IsNullOrEmpty(userId))
+        throw new ValidationException("rootTaskId and userId query parameters are required");
+
+    if (!int.TryParse(http.Request.Query["slipDays"], out var slipDays) || slipDays < 0)
+        slipDays = 1;
+
+    var cascadeResult = await cascade.SimulateAsync(rootTaskId, userId, slipDays);
+    var options       = await replan.GenerateAsync(cascadeResult, userId);
+
+    insights.TrackUserAction("replan", PiiScrubber.HashValue(userId), "replan",
+        new Dictionary<string, string> { ["options"] = options.Count.ToString() });
+
+    return Results.Ok(new { success = true, options, requestId = Guid.NewGuid() });
+})
+.WithName("GetReplanOptions")
 .WithOpenApi();
 
 app.Run();
