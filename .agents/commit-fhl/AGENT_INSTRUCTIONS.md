@@ -100,17 +100,29 @@ if no specialized agent is active.
 
 ## Tech Stack (decided — do not re-litigate)
 
-See `decisions.md` for the full record. Summary:
+See `decisions.md` (DA-002 through DA-005) for the full record. Summary:
 
-- **Language**: TypeScript (Node.js 22)
-- **Framework**: Teams Toolkit v5 (tab app)
-- **Auth**: MSAL Node + Microsoft Graph JS SDK v3
-- **Storage**: Azure Table Storage (**Azurite** for local dev)
-- **AI**: Azure OpenAI GPT-4o (endpoint: commit-fhl.openai.azure.com, deployment: gpt-5-chat)
-- **Feature Flags**: Azure App Configuration
-- **Observability**: Azure Application Insights + PII scrubber middleware
+**Backend (Forge owns):**
+- **Language**: C# (.NET 9)
+- **Framework**: ASP.NET Core Minimal API
+- **Auth**: Microsoft.Identity.Web + MSAL OBO + Microsoft.Graph SDK v5
+- **Storage**: Azure.Data.Tables (**Azurite** for local dev)
+- **AI**: Azure.AI.OpenAI → Azure OpenAI GPT-4o (endpoint: commit-fhl.openai.azure.com, deployment: gpt-5-chat)
+- **Feature Flags**: Azure.Data.AppConfiguration
+- **Observability**: Microsoft.ApplicationInsights.AspNetCore + PiiScrubber middleware
+- **Testing**: xUnit + Moq + Stryker.NET (mutation score ≥ 80%)
+- **API docs**: Swashbuckle (OpenAPI 3.1)
+
+**Frontend (Canvas owns):**
+- **Language**: TypeScript
+- **Framework**: React + Teams Toolkit v5 (tab app)
+- **UI**: Fluent UI v9 (@fluentui/react-components)
+- **State**: TanStack Query (server state) + React Context (UI state)
 - **Animations**: @react-spring/web (physics-based, all with prefers-reduced-motion handling)
+- **i18n**: react-i18next, Teams locale as driver
 - **Testing**: Jest + Stryker (mutation) + Playwright (E2E × 4 viewports)
+
+**Shared:**
 - **Source root**: `C:\Dev\commit-fhl\src\`
 - **Repository**: `https://github.com/Sampath-K/commit-fhl`
 

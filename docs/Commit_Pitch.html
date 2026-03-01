@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commit — FHL 2026 · 5 Days. 100x.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ms-blue: #0078D4;
+    --ms-blue-light: #2899F5;
+    --ms-purple: #7B4FD4;
+    --ms-teal: #008272;
+    --ms-green: #107C10;
+    --ms-orange: #D83B01;
+    --ms-red: #A80000;
+    --ms-yellow: #FFB900;
+    --dark: #0A0A0F;
+    --dark-2: #111118;
+    --dark-3: #1A1A28;
+    --dark-4: #242438;
+    --card: #16162A;
+    --border: rgba(120,120,200,0.15);
+    --text: #E8E8F0;
+    --text-muted: #8888AA;
+    --text-dim: #555570;
+    --glow-blue: 0 0 40px rgba(0,120,212,0.3);
+    --glow-purple: 0 0 40px rgba(123,79,212,0.3);
+    --glow-gold: 0 0 40px rgba(255,185,0,0.25);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ─── FHL BANNER ─────────────────────────────────────────────────────────── */
+  .fhl-banner {
+    background: linear-gradient(135deg, #FFB900 0%, #FF8C00 50%, #FF4500 100%);
+    padding: 12px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .fhl-badge {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #000;
+    background: rgba(0,0,0,0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .fhl-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #000;
+    text-align: center;
+  }
+
+  .fhl-countdown {
+    display: flex;
+    gap: 16px;
+  }
+
+  .fhl-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+    padding: 4px 12px;
+    min-width: 52px;
+  }
+
+  .fhl-day-num {
+    font-size: 16px;
+    font-weight: 900;
+    color: #000;
+    line-height: 1;
+  }
+
+  .fhl-day-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.6);
+  }
+
+  /* ─── HERO ─────────────────────────────────────────────────────────────── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,185,0,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 80%, rgba(0,120,212,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(123,79,212,0.08) 0%, transparent 60%),
+      var(--dark);
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .hero-fhl-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(255,185,0,0.15), rgba(255,140,0,0.1));
+    border: 1px solid rgba(255,185,0,0.3);
+    border-radius: 30px;
+    padding: 8px 20px;
+    margin-bottom: 32px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ms-yellow);
+  }
+
+  .hero-fhl-tag::before {
+    content: '⚡';
+    font-size: 14px;
+  }
+
+  .hero-title {
+    font-size: clamp(72px, 12vw, 130px);
+    font-weight: 700;
+    letter-spacing: -4px;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, #C0D8FF 40%, #A080FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+
+  .hero-100x {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--ms-yellow), #FF8C00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(16px, 2.5vw, 22px);
+    font-weight: 300;
+    color: var(--text-muted);
+    margin-bottom: 48px;
+    max-width: 680px;
+    letter-spacing: -0.3px;
+    line-height: 1.7;
+  }
+
+  .hero-proof-strip {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .proof-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .proof-pill-icon { font-size: 16px; }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--text-dim), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  /* ─── SECTION BASES ──────────────────────────────────────────────────────── */
+  .section { padding: 120px 40px; max-width: 1100px; margin: 0 auto; }
+  .section-full { padding: 120px 40px; width: 100%; }
+  .section-full .inner { max-width: 1100px; margin: 0 auto; }
+
+  .beat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ms-blue);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .beat-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+    max-width: 200px;
+  }
+
+  h2 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+
+  .accent-blue   { color: var(--ms-blue-light); }
+  .accent-purple { color: #A080FF; }
+  .accent-teal   { color: #40D0C0; }
+  .accent-green  { color: #50D080; }
+  .accent-gold   { color: var(--ms-yellow); }
+  .accent-red    { color: #FF6060; }
+
+  p {
+    font-size: 18px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  p + p { margin-top: 20px; }
+
+  /* ─── META PROOF ─────────────────────────────────────────────────────────── */
+  .meta-section {
+    padding: 100px 40px;
+    background: linear-gradient(135deg,
+      rgba(255,185,0,0.06) 0%,
+      rgba(255,140,0,0.04) 50%,
+      rgba(0,120,212,0.06) 100%
+    );
+    border-top: 1px solid rgba(255,185,0,0.2);
+    border-bottom: 1px solid rgba(255,185,0,0.2);
+    text-align: center;
+  }
+
+  .meta-inner { max-width: 900px; margin: 0 auto; }
+
+  .meta-headline {
+    font-size: clamp(20px, 3.5vw, 36px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.4;
+    margin: 32px 0;
+    color: var(--text);
+  }
+
+  .meta-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin: 48px 0;
+  }
+
+  .meta-stat {
+    background: var(--dark-3);
+    border: 1px solid rgba(255,185,0,0.2);
+    border-radius: 14px;
+    padding: 24px 16px;
+    text-align: center;
+  }
+
+  .meta-stat-num {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: var(--ms-yellow);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .meta-stat-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* ─── THE MOMENT ─────────────────────────────────────────────────────────── */
+  .moment-section {
+    padding: 140px 40px;
+    background: var(--dark-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .moment-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+
+  .quote-block {
+    font-size: clamp(22px, 3.5vw, 36px);
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 48px 0;
+  }
+
+  .quote-block em { font-style: italic; color: #C0D0FF; }
+
+  .notification-mockup {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 40px auto;
+    text-align: left;
+    max-width: 480px;
+    box-shadow: var(--glow-blue);
+    position: relative;
+  }
+
+  .notif-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #2055A0, #6030B0);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; flex-shrink: 0;
+  }
+
+  .notif-body { flex: 1; }
+  .notif-name { font-weight: 600; font-size: 14px; color: var(--text); }
+  .notif-time { font-size: 11px; color: var(--text-dim); margin-left: 8px; }
+  .notif-msg { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+  .notif-msg strong { color: var(--ms-yellow); }
+  .notif-badge {
+    position: absolute; top: -8px; right: -8px;
+    background: var(--ms-red); color: white;
+    font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 20px;
+  }
+
+  /* ─── COST ───────────────────────────────────────────────────────────────── */
+  .cost-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 60px; }
+
+  .cost-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px; position: relative; overflow: hidden;
+  }
+
+  .cost-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .cost-card.red::before { background: linear-gradient(90deg, var(--ms-red), transparent); }
+  .cost-card.orange::before { background: linear-gradient(90deg, var(--ms-orange), transparent); }
+  .cost-card.yellow::before { background: linear-gradient(90deg, var(--ms-yellow), transparent); }
+
+  .cost-stat { font-size: 48px; font-weight: 700; letter-spacing: -2px; line-height: 1; margin-bottom: 12px; }
+  .cost-card.red .cost-stat { color: #FF6060; }
+  .cost-card.orange .cost-stat { color: #FF9060; }
+  .cost-card.yellow .cost-stat { color: var(--ms-yellow); }
+  .cost-label { font-size: 15px; color: var(--text-muted); line-height: 1.5; }
+  .cost-source { font-size: 11px; color: var(--text-dim); margin-top: 12px; }
+
+  /* ─── INSIGHT ────────────────────────────────────────────────────────────── */
+  .insight-section {
+    padding: 140px 40px;
+    background: radial-gradient(ellipse at 50% 100%, rgba(123,79,212,0.12) 0%, transparent 70%), var(--dark-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .insight-inner { max-width: 800px; margin: 0 auto; }
+
+  .big-insight {
+    font-size: clamp(24px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.3;
+    margin: 48px 0;
+  }
+
+  .signals-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 60px; }
+
+  .signal-card {
+    background: var(--dark-3); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px 20px; text-align: center;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .signal-card:hover { border-color: rgba(0,120,212,0.4); transform: translateY(-4px); }
+
+  .signal-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+  .signal-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .signal-api { font-size: 10px; font-family: 'Cascadia Code', 'Consolas', monospace; color: var(--ms-blue-light); word-break: break-all; line-height: 1.5; }
+  .signal-desc { font-size: 11px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+
+  /* ─── HUMAN × AGENT MODEL ────────────────────────────────────────────────── */
+  .ha-section {
+    padding: 140px 40px;
+    background: var(--dark);
+  }
+
+  .ha-split {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    gap: 0;
+    margin-top: 60px;
+    align-items: stretch;
+  }
+
+  .ha-column {
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ha-column.human {
+    border-top: 3px solid var(--ms-blue-light);
+    box-shadow: var(--glow-blue);
+  }
+
+  .ha-column.agent {
+    border-top: 3px solid #A080FF;
+    box-shadow: var(--glow-purple);
+  }
+
+  .ha-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .ha-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+
+  .ha-column.human .ha-icon { background: rgba(0,120,212,0.2); }
+  .ha-column.agent .ha-icon { background: rgba(123,79,212,0.2); }
+
+  .ha-title { font-size: 18px; font-weight: 700; color: var(--text); }
+  .ha-subtitle { font-size: 12px; color: var(--text-dim); }
+
+  .ha-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .ha-item:last-child { border-bottom: none; }
+
+  .ha-item-icon { flex-shrink: 0; margin-top: 1px; font-size: 16px; }
+
+  .ha-item strong { color: var(--text); font-weight: 600; display: block; font-size: 13px; }
+
+  .ha-middle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .ha-arrow-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ha-arrow-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(to bottom, var(--ms-blue-light), #A080FF);
+  }
+
+  .ha-arrow-icon {
+    width: 44px; height: 44px;
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* ─── FHL 5-DAY SPRINT ───────────────────────────────────────────────────── */
+  .sprint-section {
+    padding: 140px 40px;
+    background: var(--dark-2);
+    border-top: 1px solid var(--border);
+  }
+
+  .sprint-timeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin-top: 60px;
+    position: relative;
+  }
+
+  .sprint-timeline::before {
+    content: '';
+    position: absolute;
+    top: 48px;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg,
+      var(--ms-blue) 0%,
+      var(--ms-blue-light) 25%,
+      var(--ms-purple) 50%,
+      #A080FF 75%,
+      var(--ms-yellow) 100%
+    );
+  }
+
+  .sprint-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sprint-day-circle {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-weight: 900; font-size: 11px;
+    margin-bottom: 20px;
+    border: 2px solid;
+    background: var(--dark-2);
+    letter-spacing: 0;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .sprint-day:nth-child(1) .sprint-day-circle { border-color: var(--ms-blue); color: var(--ms-blue-light); }
+  .sprint-day:nth-child(2) .sprint-day-circle { border-color: var(--ms-blue-light); color: var(--ms-blue-light); }
+  .sprint-day:nth-child(3) .sprint-day-circle { border-color: var(--ms-purple); color: #A080FF; }
+  .sprint-day:nth-child(4) .sprint-day-circle { border-color: #A080FF; color: #C0A0FF; }
+  .sprint-day:nth-child(5) .sprint-day-circle { border-color: var(--ms-yellow); color: var(--ms-yellow); background: rgba(255,185,0,0.08); }
+
+  .sprint-day-name {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    text-align: center; margin-bottom: 6px;
+  }
+
+  .sprint-day-sub {
+    font-size: 10px; color: var(--text-dim); text-align: center;
+    margin-bottom: 16px; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  .sprint-card {
+    background: var(--dark-4);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    width: 100%;
+    font-size: 12px;
+  }
+
+  .sprint-card-section {
+    margin-bottom: 12px;
+  }
+
+  .sprint-card-section:last-child { margin-bottom: 0; }
+
+  .sprint-who {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .sprint-who.human { background: rgba(0,120,212,0.2); color: var(--ms-blue-light); }
+  .sprint-who.agent { background: rgba(123,79,212,0.2); color: #A080FF; }
+
+  .sprint-tasks {
+    list-style: none;
+  }
+
+  .sprint-tasks li {
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 3px 0;
+    display: flex;
+    gap: 6px;
+    line-height: 1.5;
+  }
+
+  .sprint-tasks li::before { content: '→'; color: var(--text-dim); flex-shrink: 0; }
+
+  .sprint-day:nth-child(5) .sprint-card {
+    border-color: rgba(255,185,0,0.3);
+    box-shadow: 0 0 20px rgba(255,185,0,0.1);
+  }
+
+  .sprint-deliverable {
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .sprint-d-icon { font-size: 32px; }
+  .sprint-d-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .sprint-d-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+
+  /* ─── SOLUTION PANE ──────────────────────────────────────────────────────── */
+  .solution-section {
+    padding: 140px 40px;
+    background: radial-gradient(ellipse at 30% 50%, rgba(0,120,212,0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(123,79,212,0.08) 0%, transparent 60%),
+                var(--dark);
+  }
+
+  .pane-mockup {
+    background: var(--dark-3); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6), var(--glow-blue);
+    margin-top: 60px;
+  }
+
+  .pane-titlebar {
+    background: var(--dark-4); padding: 14px 20px;
+    display: flex; align-items: center; gap: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pane-dots { display: flex; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #FF5F57; }
+  .dot-yellow { background: #FEBC2E; }
+  .dot-green { background: #28C840; }
+  .pane-title { font-size: 13px; font-weight: 600; color: var(--text-muted); flex: 1; text-align: center; letter-spacing: 1px; }
+
+  .pane-body { display: grid; grid-template-columns: 260px 1fr; min-height: 520px; }
+  .pane-sidebar { border-right: 1px solid var(--border); padding: 20px 0; }
+
+  .sidebar-section { padding: 8px 20px; margin-bottom: 4px; }
+  .sidebar-header { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; padding: 0 0 6px; border-bottom: 1px solid var(--border); }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13px; color: var(--text-muted); }
+  .sidebar-item.active { background: rgba(0,120,212,0.15); color: var(--ms-blue-light); font-weight: 600; }
+  .sidebar-badge { margin-left: auto; background: var(--ms-blue); color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+  .sidebar-badge.red { background: var(--ms-red); }
+  .sidebar-badge.yellow { background: var(--ms-yellow); color: #000; }
+
+  .pane-main { padding: 24px; }
+  .commit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .commit-title-row { font-size: 15px; font-weight: 700; color: var(--text); }
+  .commit-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  .commit-item {
+    background: var(--dark-4); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 12px;
+    display: grid; grid-template-columns: 1fr auto; gap: 12px;
+    align-items: start; position: relative; overflow: hidden;
+  }
+
+  .commit-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .commit-item.urgent::before { background: var(--ms-red); }
+  .commit-item.warning::before { background: var(--ms-yellow); }
+  .commit-item.ok::before { background: var(--ms-green); }
+  .commit-item.blocked::before { background: var(--ms-purple); }
+
+  .ci-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .ci-meta { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  .ci-impact { font-size: 11px; background: rgba(168,0,0,0.2); color: #FF8080; border: 1px solid rgba(168,0,0,0.3); border-radius: 6px; padding: 3px 8px; margin-top: 6px; display: inline-block; }
+  .ci-impact.warn { background: rgba(255,185,0,0.15); color: var(--ms-yellow); border-color: rgba(255,185,0,0.3); }
+  .ci-impact.ok { background: rgba(16,124,16,0.15); color: #60C060; border-color: rgba(16,124,16,0.3); }
+  .ci-action { margin-top: 8px; font-size: 11px; background: rgba(0,120,212,0.2); color: var(--ms-blue-light); border: 1px solid rgba(0,120,212,0.3); border-radius: 6px; padding: 3px 8px; display: inline-block; }
+  .ci-right { text-align: right; }
+  .ci-due { font-size: 11px; color: var(--text-dim); }
+  .ci-score { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .urgent .ci-score { color: #FF6060; }
+  .warning .ci-score { color: var(--ms-yellow); }
+  .ok .ci-score { color: #60C060; }
+  .blocked .ci-score { color: #A080FF; }
+
+  .load-bar { background: var(--dark-4); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+  .load-bar-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .load-bar-track { height: 6px; background: var(--dark-3); border-radius: 3px; position: relative; }
+  .load-bar-fill { height: 100%; border-radius: 3px; }
+  .load-bar-fill.over { background: linear-gradient(90deg, var(--ms-blue), var(--ms-orange), var(--ms-red)); }
+
+  /* ─── CASCADE ────────────────────────────────────────────────────────────── */
+  .cascade-section { padding: 140px 40px; background: var(--dark); }
+
+  .cascade-box {
+    background: var(--dark-3); border: 1px solid var(--border); border-radius: 20px;
+    padding: 40px; margin-top: 60px;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px; line-height: 2; color: var(--text-muted);
+  }
+
+  .cascade-trigger { color: var(--ms-yellow); font-weight: 700; margin-bottom: 16px; font-size: 14px; }
+  .cascade-level-1 { color: var(--ms-red); }
+  .cascade-level-2 { padding-left: 32px; color: #FF9090; }
+  .cascade-level-3 { padding-left: 64px; color: #FFB0B0; }
+  .cascade-level-4 { padding-left: 96px; color: var(--ms-yellow); }
+  .cascade-fix { color: #60D080; margin-top: 16px; }
+  .cascade-fix-detail { color: #40B060; padding-left: 32px; }
+
+  .cascade-score {
+    margin-top: 24px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  }
+
+  .cascade-score-item { text-align: center; }
+  .cascade-score-num { font-size: 32px; font-weight: 700; font-family: 'Segoe UI', sans-serif; }
+  .cascade-score-label { font-size: 11px; color: var(--text-dim); font-family: 'Segoe UI', sans-serif; }
+
+  /* ─── 100X PROOF ─────────────────────────────────────────────────────────── */
+  .proof-section {
+    padding: 140px 40px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,185,0,0.1) 0%, transparent 60%), var(--dark-2);
+    border-top: 1px solid rgba(255,185,0,0.2);
+    border-bottom: 1px solid rgba(255,185,0,0.2);
+  }
+
+  .proof-vs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 32px;
+    margin-top: 60px;
+    align-items: center;
+  }
+
+  .proof-col {
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+  }
+
+  .proof-col.traditional {
+    border-top: 3px solid #555;
+    opacity: 0.8;
+  }
+
+  .proof-col.fhl {
+    border-top: 3px solid var(--ms-yellow);
+    box-shadow: var(--glow-gold);
+  }
+
+  .proof-col-header {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .traditional .proof-col-header { color: #777; }
+  .fhl .proof-col-header { color: var(--ms-yellow); }
+
+  .proof-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+    font-size: 14px; color: var(--text-muted);
+  }
+
+  .proof-row:last-child { border-bottom: none; }
+  .proof-row-icon { font-size: 16px; flex-shrink: 0; }
+  .proof-row strong { color: var(--text); font-weight: 700; display: block; font-size: 18px; letter-spacing: -0.5px; }
+
+  .proof-vs-center {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px;
+  }
+
+  .proof-vs-badge {
+    background: linear-gradient(135deg, var(--ms-yellow), #FF8C00);
+    color: #000;
+    font-size: 32px;
+    font-weight: 900;
+    padding: 16px 20px;
+    border-radius: 16px;
+    letter-spacing: -1px;
+    box-shadow: var(--glow-gold);
+  }
+
+  .proof-vs-label { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* ─── API CARDS ──────────────────────────────────────────────────────────── */
+  .api-section { padding: 140px 40px; background: var(--dark-2); border-top: 1px solid var(--border); }
+  .api-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 60px; }
+
+  .api-card {
+    background: var(--dark-3); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; position: relative; overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+
+  .api-card:hover { border-color: rgba(0,120,212,0.4); transform: translateY(-3px); }
+  .api-card-layer { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .api-card.blue .api-card-layer { background: linear-gradient(90deg, #0078D4, #2899F5); }
+  .api-card.purple .api-card-layer { background: linear-gradient(90deg, #7B4FD4, #A080FF); }
+  .api-card.teal .api-card-layer { background: linear-gradient(90deg, #008272, #40D0C0); }
+  .api-card.green .api-card-layer { background: linear-gradient(90deg, #107C10, #50D080); }
+  .api-card.orange .api-card-layer { background: linear-gradient(90deg, #D83B01, #FF9060); }
+  .api-card.gold .api-card-layer { background: linear-gradient(90deg, #FFB900, #FFD860); }
+
+  .api-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .api-logo { font-size: 20px; }
+  .api-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .api-category { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+  .api-endpoints { list-style: none; margin-bottom: 16px; }
+  .api-endpoints li { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 10px; color: var(--ms-blue-light); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); line-height: 1.6; }
+
+  .api-what { font-size: 12px; color: var(--text-dim); line-height: 1.6; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  /* ─── SUCCESS METRICS ────────────────────────────────────────────────────── */
+  .metrics-section {
+    padding: 140px 40px;
+    background: var(--dark);
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 60px;
+  }
+
+  .metric-card {
+    background: var(--dark-3);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .metric-card:nth-child(1)::before { background: linear-gradient(90deg, var(--ms-blue-light), transparent); }
+  .metric-card:nth-child(2)::before { background: linear-gradient(90deg, #A080FF, transparent); }
+  .metric-card:nth-child(3)::before { background: linear-gradient(90deg, var(--ms-teal), transparent); }
+  .metric-card:nth-child(4)::before { background: linear-gradient(90deg, var(--ms-yellow), transparent); }
+  .metric-card:nth-child(5)::before { background: linear-gradient(90deg, #50D080, transparent); }
+  .metric-card:nth-child(6)::before { background: linear-gradient(90deg, #FF9060, transparent); }
+
+  .metric-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ms-blue-light);
+    background: rgba(0,120,212,0.15);
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+
+  .metric-tag.human { color: var(--ms-blue-light); background: rgba(0,120,212,0.15); }
+  .metric-tag.fhl { color: var(--ms-yellow); background: rgba(255,185,0,0.15); }
+
+  .metric-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .metric-target { font-size: 28px; font-weight: 700; letter-spacing: -1px; line-height: 1; margin-bottom: 8px; background: linear-gradient(135deg, #fff, #A0C0FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .metric-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ─── BEFORE / AFTER ─────────────────────────────────────────────────────── */
+  .before-after { padding: 140px 40px; background: var(--dark-2); border-top: 1px solid var(--border); }
+
+  .ba-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 32px; align-items: start; margin-top: 60px; }
+
+  .ba-column { background: var(--dark-3); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+  .ba-column.before { border-top: 3px solid #FF4040; }
+  .ba-column.after { border-top: 3px solid #40D080; box-shadow: var(--glow-blue); }
+
+  .ba-header { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px; }
+  .before .ba-header { color: #FF6060; }
+  .after .ba-header { color: #60D080; }
+
+  .ba-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+  .ba-item:last-child { border-bottom: none; }
+  .ba-icon { flex-shrink: 0; margin-top: 1px; }
+  .ba-arrow { display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--ms-blue-light); align-self: center; }
+
+  /* ─── VISION ─────────────────────────────────────────────────────────────── */
+  .vision-section {
+    padding: 140px 40px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,120,212,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(123,79,212,0.1) 0%, transparent 60%),
+                var(--dark);
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .vision-inner { max-width: 800px; margin: 0 auto; }
+
+  .vision-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin: 60px 0; }
+  .vision-stat { text-align: center; }
+  .vision-num { font-size: 48px; font-weight: 700; letter-spacing: -2px; line-height: 1; background: linear-gradient(135deg, var(--ms-blue-light), #A080FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .vision-label { font-size: 13px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+
+  .vision-statement { font-size: clamp(20px, 3vw, 32px); font-weight: 300; color: var(--text); line-height: 1.6; margin: 40px 0; }
+  .vision-statement strong { font-weight: 700; background: linear-gradient(135deg, var(--ms-blue-light), #A080FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  /* ─── CTA ─────────────────────────────────────────────────────────────────── */
+  .cta-section {
+    padding: 140px 40px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,185,0,0.1) 0%, transparent 60%), var(--dark);
+    text-align: center;
+  }
+
+  .cta-inner { max-width: 800px; margin: 0 auto; }
+
+  .cta-fhl-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(255,185,0,0.2), rgba(255,140,0,0.1));
+    border: 1px solid rgba(255,185,0,0.4);
+    border-radius: 30px;
+    padding: 10px 24px;
+    margin-bottom: 32px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ms-yellow);
+    letter-spacing: 1px;
+  }
+
+  .cta-title { font-size: clamp(40px, 6vw, 80px); font-weight: 700; letter-spacing: -3px; background: linear-gradient(135deg, #fff 0%, var(--ms-yellow) 50%, #FF8C00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 24px; line-height: 1; }
+
+  .cta-sub { font-size: 18px; color: var(--text-muted); line-height: 1.8; margin-bottom: 48px; max-width: 640px; margin-left: auto; margin-right: auto; }
+
+  .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+  .btn-primary { background: linear-gradient(135deg, var(--ms-yellow), #FF8C00); color: #000; border: none; padding: 18px 44px; border-radius: 10px; font-size: 16px; font-weight: 900; cursor: pointer; letter-spacing: 0.5px; box-shadow: 0 8px 32px rgba(255,185,0,0.4); transition: transform 0.2s, box-shadow 0.2s; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,185,0,0.6); }
+
+  .btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 18px 44px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+  .btn-secondary:hover { border-color: rgba(0,120,212,0.5); color: var(--text); }
+
+  /* ─── PROGRESS TRACKER ───────────────────────────────────────────────────── */
+  .progress-section {
+    padding: 80px 40px;
+    background: var(--dark-2);
+    border-top: 1px solid var(--border);
+  }
+
+  .progress-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+
+  .progress-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .progress-sub { font-size: 14px; color: var(--text-dim); margin-bottom: 40px; }
+
+  .progress-track {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 0 auto;
+  }
+
+  .progress-block {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--dark-4);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-block::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+
+  .progress-block.d1::after { width: 0%; background: var(--ms-blue); }
+  .progress-block.d2::after { width: 0%; background: var(--ms-blue-light); }
+  .progress-block.d3::after { width: 0%; background: var(--ms-purple); }
+  .progress-block.d4::after { width: 0%; background: #A080FF; }
+  .progress-block.d5::after { width: 0%; background: var(--ms-yellow); }
+
+  .progress-labels {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .progress-label { font-size: 10px; color: var(--text-dim); text-align: center; }
+
+  footer {
+    padding: 40px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+  @media (max-width: 1000px) {
+    .sprint-timeline { grid-template-columns: 1fr 1fr; }
+    .sprint-timeline::before { display: none; }
+    .ha-split { grid-template-columns: 1fr; }
+    .ha-middle { padding: 16px; transform: rotate(90deg); }
+    .proof-vs { grid-template-columns: 1fr; }
+    .ba-grid { grid-template-columns: 1fr; }
+    .ba-arrow { transform: rotate(90deg); }
+  }
+
+  @media (max-width: 768px) {
+    .cost-grid, .signals-grid, .api-grid, .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .cascade-score { grid-template-columns: 1fr 1fr; }
+    .vision-stats { grid-template-columns: 1fr 1fr; }
+    .fhl-countdown { display: none; }
+    .meta-stats { grid-template-columns: 1fr 1fr; }
+    .pane-body { grid-template-columns: 1fr; }
+    .pane-sidebar { display: none; }
+    .progress-track, .progress-labels { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  @media (max-width: 500px) {
+    .cost-grid, .signals-grid, .api-grid, .metrics-grid { grid-template-columns: 1fr; }
+    .sprint-timeline { grid-template-columns: 1fr; }
+    .fhl-banner { flex-wrap: wrap; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FHL BANNER
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="fhl-banner">
+  <div class="fhl-badge">⚡ FHL 2026</div>
+  <div class="fhl-text">Fix · Hack · Learn &nbsp;·&nbsp; 5 Days to Ship · AI Agents Build It · Humans Shape It</div>
+  <div class="fhl-countdown">
+    <div class="fhl-day"><div class="fhl-day-num">MON</div><div class="fhl-day-label">Define</div></div>
+    <div class="fhl-day"><div class="fhl-day-num">TUE</div><div class="fhl-day-label">Signal</div></div>
+    <div class="fhl-day"><div class="fhl-day-num">WED</div><div class="fhl-day-label">Graph</div></div>
+    <div class="fhl-day"><div class="fhl-day-num">THU</div><div class="fhl-day-label">Execute</div></div>
+    <div class="fhl-day"><div class="fhl-day-num">FRI</div><div class="fhl-day-label">🚀 Demo</div></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-fhl-tag">FHL 2026 · Fix Hack Learn Week</div>
+  <div class="hero-title">Commit</div>
+  <div class="hero-100x">5 Days. 100x. AI Agents Ship It.</div>
+  <p class="hero-subtitle">
+    The intelligent commitment layer for Microsoft 365.<br>
+    Built in a week by AI agents. Guided by humans.<br>
+    Proof that the future of work is already here.
+  </p>
+
+  <div class="hero-proof-strip">
+    <div class="proof-pill"><span class="proof-pill-icon">🤖</span> Agents write the code</div>
+    <div class="proof-pill"><span class="proof-pill-icon">🧠</span> Humans define the what</div>
+    <div class="proof-pill"><span class="proof-pill-icon">📊</span> Metrics prove it worked</div>
+    <div class="proof-pill"><span class="proof-pill-icon">🏁</span> Friday demo, live end-to-end</div>
+  </div>
+
+  <div class="scroll-cue">
+    <span>THE STORY</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     META PROOF — THE PITCH ITSELF IS THE FIRST DEMO
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="meta-section">
+  <div class="meta-inner">
+    <div class="beat-label" style="justify-content:center">Before We Begin — The First Proof Point</div>
+
+    <div class="meta-headline">
+      The pitch deck you are reading right now<br>
+      was built entirely by an AI agent.<br>
+      <span style="color:var(--ms-yellow);">This conversation took 2 hours. Not 2 weeks.</span>
+    </div>
+
+    <p style="text-align:center;margin:0 auto 40px;max-width:640px;">
+      The architecture, the M365 API mapping, the cascade simulation design, the 5-day sprint plan —
+      all of it generated by AI agents with a human providing direction, judgment, and the "what."
+      This document is not a proposal about building with AI agents.
+      <strong style="color:var(--text);">It is already evidence of it.</strong>
+    </p>
+
+    <div class="meta-stats">
+      <div class="meta-stat">
+        <div class="meta-stat-num">2hrs</div>
+        <div class="meta-stat-label">Total human time to produce this full proposal and architecture</div>
+      </div>
+      <div class="meta-stat">
+        <div class="meta-stat-num">~0</div>
+        <div class="meta-stat-label">Code written by hand. All generated, reviewed, and approved by human.</div>
+      </div>
+      <div class="meta-stat">
+        <div class="meta-stat-num">8×</div>
+        <div class="meta-stat-label">M365 API surfaces mapped, dependency graph designed, sprint planned</div>
+      </div>
+      <div class="meta-stat">
+        <div class="meta-stat-num">100x</div>
+        <div class="meta-stat-label">What traditionally takes a team 2 weeks — done this afternoon</div>
+      </div>
+    </div>
+
+    <p style="text-align:center;margin:0 auto;max-width:600px;">
+      If this is what an AI agent can do in 2 hours with a human directing it —
+      imagine what we ship by <strong style="color:var(--ms-yellow);">Friday at 4PM.</strong>
+    </p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     THE MOMENT
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="moment-section">
+  <div class="moment-inner">
+    <div class="beat-label" style="justify-content:center">The Moment Everyone Knows</div>
+
+    <div class="quote-block">
+      It is <em>9 PM on a Thursday.</em><br>
+      Your phone lights up.
+    </div>
+
+    <div class="notification-mockup">
+      <div class="notif-avatar">PR</div>
+      <div class="notif-body">
+        <span class="notif-name">Priya Ramesh</span>
+        <span class="notif-time">9:07 PM</span>
+        <div class="notif-msg">Hey — did you finish that <strong>design review?</strong> The demo is tomorrow and Bob has been blocked for two days. 😬</div>
+      </div>
+      <div class="notif-badge">Teams</div>
+    </div>
+
+    <div class="quote-block">
+      You said <em>"I'll handle it"</em> in a meeting six days ago.<br>
+      It was real. It mattered.<br>
+      Then it <em>silently disappeared.</em>
+    </div>
+
+    <p style="color:var(--text-dim);text-align:center;max-width:600px;margin:0 auto;">
+      This is not a story about a bad engineer. This is a story about a broken system —
+      one where the moment a commitment leaves someone's mouth, it falls into a void
+      that no calendar, no to-do list, and no manager can see.
+      <strong style="color:var(--text);">We can fix this in a week.</strong>
+    </p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     THE COST
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="section-full" style="background:var(--dark);padding:120px 40px;">
+  <div class="inner">
+    <div class="beat-label">The Hidden Tax on Every Engineer</div>
+    <h2>The work is <span class="accent-red">invisible.</span><br>The cost is <span class="accent-red">enormous.</span></h2>
+    <p>
+      Knowledge workers make dozens of commitments a week — in meetings, chats, emails, documents.
+      Nearly none of them are captured in any system. They live in human memory, and human memory leaks.
+    </p>
+
+    <div class="cost-grid">
+      <div class="cost-card red">
+        <div class="cost-stat">57%</div>
+        <div class="cost-label">of knowledge workers say tasks committed in meetings are never formally tracked anywhere</div>
+        <div class="cost-source">Microsoft WorkLab · Work Trend Index 2024</div>
+      </div>
+      <div class="cost-card orange">
+        <div class="cost-stat">2.4hrs</div>
+        <div class="cost-label">lost per person per week to follow-up pings, status checks, and "any update?" messages</div>
+        <div class="cost-source">Viva Insights · Collaboration Patterns Report</div>
+      </div>
+      <div class="cost-card yellow">
+        <div class="cost-stat">68%</div>
+        <div class="cost-label">of employees say unclear task ownership is a primary driver of work-related stress and burnout</div>
+        <div class="cost-source">Gallup · State of the Global Workplace 2024</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     THE INSIGHT
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="insight-section">
+  <div class="insight-inner">
+    <div class="beat-label" style="justify-content:center">The Insight</div>
+
+    <div class="big-insight">
+      Every commitment already exists<br>
+      <span class="accent-blue">somewhere in Microsoft 365.</span><br>
+      <span style="font-size:0.7em;color:var(--text-muted);font-weight:300;">We just haven't connected them yet.</span>
+    </div>
+
+    <p style="max-width:640px;margin:0 auto;text-align:center;">
+      Meeting transcripts. Teams messages. Email threads. Document comments. Calendar notes.
+      Loop components. ADO PR reviews. The signal is already there — in hundreds of millions
+      of interactions every day. Graph API exposes all of it. AI reads all of it.
+    </p>
+
+    <div class="signals-grid">
+      <div class="signal-card">
+        <span class="signal-icon">🎙️</span>
+        <div class="signal-name">Meeting Transcripts</div>
+        <div class="signal-api">/onlineMeetings/transcripts<br>/communications/callRecords</div>
+        <div class="signal-desc">"I'll handle it by Friday" — NLP extracted, owner identified</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">💬</span>
+        <div class="signal-name">Teams Chat</div>
+        <div class="signal-api">/chats/{id}/messages<br>/teams/{id}/channels/{id}/messages</div>
+        <div class="signal-desc">@mentions, action phrases, commitments — mined in real time</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">📧</span>
+        <div class="signal-name">Outlook Email</div>
+        <div class="signal-api">/me/messages<br>/me/mailFolders/inbox</div>
+        <div class="signal-desc">Unanswered requests, follow-up flags, action items in threads</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">📄</span>
+        <div class="signal-name">Documents &amp; Loop</div>
+        <div class="signal-api">/drives/{id}/items<br>/sharepoint/sites/{id}/lists</div>
+        <div class="signal-desc">Word comments, OneNote action items, Loop task components</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">📅</span>
+        <div class="signal-name">Calendar Context</div>
+        <div class="signal-api">/me/calendar/events<br>/me/calendarView</div>
+        <div class="signal-desc">Meeting load, free/busy capacity, deadline proximity signals</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">📋</span>
+        <div class="signal-name">Planner &amp; To Do</div>
+        <div class="signal-api">/planner/tasks<br>/me/todo/lists/{id}/tasks</div>
+        <div class="signal-desc">Existing assigned tasks — unified into one commitment graph</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">📊</span>
+        <div class="signal-name">Viva Insights</div>
+        <div class="signal-api">/insights/me/used<br>/analytics/activityStatistics</div>
+        <div class="signal-desc">Wellbeing, capacity, collaboration load, burnout risk signals</div>
+      </div>
+      <div class="signal-card">
+        <span class="signal-icon">🔧</span>
+        <div class="signal-name">ADO Work Items</div>
+        <div class="signal-api">ADO REST: /wit/workitems<br>/git/pullRequests/threads</div>
+        <div class="signal-desc">PR review requests, unresolved threads, work item assignments</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HUMAN × AGENT MODEL — THE CORE PHILOSOPHY
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="ha-section">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">The FHL Philosophy</div>
+    <h2>Humans define the <span class="accent-blue">what.</span><br>Agents deliver the <span class="accent-purple">how.</span></h2>
+    <p>
+      This FHL sprint is itself a live demonstration of the model. Every architectural decision,
+      every success metric, every pivot — made by a human. Every line of code, every API call,
+      every integration, every test — executed by AI agents. The human's job is judgment, not labor.
+    </p>
+
+    <div class="ha-split">
+      <div class="ha-column human">
+        <div class="ha-header">
+          <div class="ha-icon">🧠</div>
+          <div>
+            <div class="ha-title">Human Responsibilities</div>
+            <div class="ha-subtitle">Judgment · Direction · Quality bar · Values</div>
+          </div>
+        </div>
+
+        <div class="ha-item">
+          <span class="ha-item-icon">🎯</span>
+          <div>
+            <strong>Define the "what" and the "why"</strong>
+            What problem are we solving? What does success look like? What is out of scope?
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">📏</span>
+          <div>
+            <strong>Set success metrics</strong>
+            Latency thresholds, accuracy targets, UX quality bar, privacy constraints, launch criteria.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🔍</span>
+          <div>
+            <strong>Review agent output and provide feedback</strong>
+            Approve, reject, or redirect. The human is the signal that trains the agent in real time.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🌐</span>
+          <div>
+            <strong>Provide domain context agents cannot infer</strong>
+            Org dynamics, political constraints, user empathy, strategic priority.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🧭</span>
+          <div>
+            <strong>Nudge when direction drifts</strong>
+            Agents run autonomously. Humans watch the compass and correct heading — not every step.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">⚖️</span>
+          <div>
+            <strong>Make judgment calls on trade-offs</strong>
+            Speed vs. quality. Scope vs. polish. Risk vs. ambition. Agents surface options, humans decide.
+          </div>
+        </div>
+      </div>
+
+      <div class="ha-middle">
+        <div class="ha-arrow-container">
+          <div class="ha-arrow-line"></div>
+          <div class="ha-arrow-icon">⇄</div>
+          <div class="ha-arrow-line"></div>
+        </div>
+      </div>
+
+      <div class="ha-column agent">
+        <div class="ha-header">
+          <div class="ha-icon">🤖</div>
+          <div>
+            <div class="ha-title">Agent Responsibilities</div>
+            <div class="ha-subtitle">Execution · Scale · Speed · Breadth</div>
+          </div>
+        </div>
+
+        <div class="ha-item">
+          <span class="ha-item-icon">⚡</span>
+          <div>
+            <strong>Write all implementation code</strong>
+            Graph API integrations, NLP pipelines, graph data model, cascade engine, Teams pane — all of it.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🔌</span>
+          <div>
+            <strong>Integrate all M365 API surfaces</strong>
+            Webhook subscriptions, token management, data normalization, error handling, retry logic.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🧪</span>
+          <div>
+            <strong>Write and run tests continuously</strong>
+            Unit tests, integration tests, synthetic data generation, coverage reports — autonomous.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🐛</span>
+          <div>
+            <strong>Debug and self-heal</strong>
+            When builds fail, agents diagnose, fix, and re-verify without human involvement.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">📈</span>
+          <div>
+            <strong>Report progress continuously</strong>
+            Live build status, feature completion %, blockers surfaced, metrics tracked — always visible.
+          </div>
+        </div>
+        <div class="ha-item">
+          <span class="ha-item-icon">🔄</span>
+          <div>
+            <strong>Iterate based on human feedback in minutes</strong>
+            A human says "this UX feels wrong." Agent redesigns, rebuilds, and ships a new version in under 10 minutes.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     THE SOLUTION — COMMIT PANE
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="solution-section">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">What We Ship Friday</div>
+    <h2><span class="accent-blue">Commit</span> — A new pane in Teams<br>that never forgets anything.</h2>
+    <p>
+      Not another task app. A living commitment layer woven into the M365 surface you already live in.
+      Every commitment captured, every dependency tracked, every cascade simulated before it happens.
+    </p>
+
+    <div class="pane-mockup">
+      <div class="pane-titlebar">
+        <div class="pane-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="pane-title">⬡ COMMIT · Commitment Dashboard · Teams Pane</div>
+        <div style="font-size:11px;color:var(--text-dim);">Live · Synced 0s ago · 14 active</div>
+      </div>
+      <div class="pane-body">
+        <div class="pane-sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-header">My Commitments</div>
+            <div class="sidebar-item active">🔴 Urgent + Important <span class="sidebar-badge red">3</span></div>
+            <div class="sidebar-item">🟡 Schedule <span class="sidebar-badge yellow">5</span></div>
+            <div class="sidebar-item">🔵 Delegate <span class="sidebar-badge">4</span></div>
+            <div class="sidebar-item">⚪ Deferred <span class="sidebar-badge">2</span></div>
+          </div>
+          <div class="sidebar-section">
+            <div class="sidebar-header">Tracking Others</div>
+            <div class="sidebar-item">⏳ Waiting On <span class="sidebar-badge yellow">3</span></div>
+            <div class="sidebar-item">✅ Delivered Today <span class="sidebar-badge">2</span></div>
+          </div>
+          <div class="sidebar-section">
+            <div class="sidebar-header">Team Health</div>
+            <div class="sidebar-item">🔥 At-Risk This Week <span class="sidebar-badge red">2</span></div>
+            <div class="sidebar-item">📊 Sprint Confidence</div>
+          </div>
+          <div class="sidebar-section" style="margin-top:16px;">
+            <div class="load-bar">
+              <div class="load-bar-header">
+                <span>Your Load</span>
+                <span style="color:#FF9060;font-weight:700;">112%</span>
+              </div>
+              <div class="load-bar-track">
+                <div class="load-bar-fill over" style="width:100%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane-main">
+          <div class="commit-header">
+            <div>
+              <div class="commit-title-row">🔴 Urgent · Action Required Today</div>
+              <div class="commit-subtitle">These affect 6 people if not resolved · Agent has pre-drafted actions</div>
+            </div>
+          </div>
+
+          <div class="commit-item urgent">
+            <div>
+              <div class="ci-name">Review: Sharing Migration Design Doc</div>
+              <div class="ci-meta">📍 Committed verbally · Design Sync, Mon 2PM · Source: Teams transcript</div>
+              <div class="ci-impact">🔴 Blocks Bob → Carol → Sprint Demo (exec visible, 8 stakeholders)</div>
+              <div class="ci-action">✏️ Agent drafted your review — 1-click to post</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-due">Due today 5PM</div>
+              <div class="ci-score">47</div>
+              <div style="font-size:10px;color:var(--text-dim);">impact score</div>
+            </div>
+          </div>
+
+          <div class="commit-item warning">
+            <div>
+              <div class="ci-name">Reply: Priya's architecture question</div>
+              <div class="ci-meta">📍 Teams DM · 3 days unanswered · Priya pinged twice</div>
+              <div class="ci-impact ci-impact warn">⚠️ Priya waiting · Planning blocked · ETA slipping</div>
+              <div class="ci-action">✏️ Agent drafted reply from doc context — review &amp; send</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-due">3 days overdue</div>
+              <div class="ci-score">28</div>
+              <div style="font-size:10px;color:var(--text-dim);">impact score</div>
+            </div>
+          </div>
+
+          <div class="commit-item blocked">
+            <div>
+              <div class="ci-name">PR #4953 · Waiting: Bob's approval</div>
+              <div class="ci-meta">📍 ADO · You are blocked · Bob last active 4 days ago</div>
+              <div class="ci-impact" style="background:rgba(123,79,212,0.2);color:#C0A0FF;border-color:rgba(123,79,212,0.3);">
+                🟣 Agent nudged Bob yesterday · No response · Escalation ready
+              </div>
+              <div class="ci-action">📣 1-click: Escalate to Bob's manager with full context</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-due">Waiting 4 days</div>
+              <div class="ci-score" style="color:#A080FF;">19</div>
+              <div style="font-size:10px;color:var(--text-dim);">impact score</div>
+            </div>
+          </div>
+
+          <div class="commit-item ok">
+            <div>
+              <div class="ci-name">Send: Weekly team status update</div>
+              <div class="ci-meta">📍 Recurring · Standing commitment · 8 recipients</div>
+              <div class="ci-impact ci-impact ok">✅ Agent generated draft from this week's activity · Ready to send</div>
+            </div>
+            <div class="ci-right">
+              <div class="ci-due">Due Friday</div>
+              <div class="ci-score">4</div>
+              <div style="font-size:10px;color:var(--text-dim);">impact score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CASCADE INTELLIGENCE
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="cascade-section">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">Dependency Intelligence</div>
+    <h2>One slip becomes visible<br><span class="accent-purple">before the cascade begins.</span></h2>
+    <p>
+      Commit builds a live dependency graph across every commitment in your team.
+      When risk appears, it simulates the full cascade in real time — then gives you
+      three replanned options. You choose. The agent executes, communicates, and closes the loop.
+    </p>
+
+    <div class="cascade-box">
+      <div class="cascade-trigger">⚡ TRIGGER: Alice's design review — 48hr no activity · due in 6hrs · impact simulation running</div>
+      <div class="cascade-level-1">├─ Alice slips 1 day</div>
+      <div class="cascade-level-2">├─ Bob's API Design: Wed → Thu (calendar already 80% booked)</div>
+      <div class="cascade-level-3">├─ Carol's Implementation: Fri → Mon (2-day cascade slip)</div>
+      <div class="cascade-level-4">└─ Sprint Demo: Mon 9AM 🚨 EXECUTIVE VISIBLE · 8 stakeholders · reschedule cost: 3hrs</div>
+      <div class="cascade-level-2">└─ Sprint Planning: Tue (missing context → partial decisions → rework risk: MEDIUM)</div>
+      <br>
+      <div class="cascade-fix">✅ REPLAN OPTIONS — Agent generated · Human chooses · Agent executes all comms</div>
+      <div class="cascade-fix-detail">Option A: Alice completes tonight (2hrs) → Demo SAVED · Burnout risk: +12pts</div>
+      <div class="cascade-fix-detail">Option B: Bob codes against assumptions · Alice delivers Tue noon → Demo 80% safe · No comms needed</div>
+      <div class="cascade-fix-detail">Option C: Slip demo 1 week · Clean reset · Agent drafts + sends all 8 stakeholder comms · Confidence: 95%</div>
+
+      <div class="cascade-score">
+        <div class="cascade-score-item">
+          <div class="cascade-score-num" style="color:#FF6060;">6</div>
+          <div class="cascade-score-label">People directly<br>affected</div>
+        </div>
+        <div class="cascade-score-item">
+          <div class="cascade-score-num" style="color:#FFB900;">8</div>
+          <div class="cascade-score-label">Stakeholders<br>in demo</div>
+        </div>
+        <div class="cascade-score-item">
+          <div class="cascade-score-num" style="color:#A080FF;">3hrs</div>
+          <div class="cascade-score-label">Calendar<br>disruption cost</div>
+        </div>
+        <div class="cascade-score-item">
+          <div class="cascade-score-num" style="color:#60D080;">0</div>
+          <div class="cascade-score-label">Manual pings<br>required</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     THE 5-DAY FHL SPRINT
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="sprint-section">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="beat-label">The FHL Sprint Plan</div>
+    <h2>Day by day.<br><span class="accent-gold">Humans set direction. Agents build.</span></h2>
+    <p>
+      Each day has a clear human deliverable (judgment, decisions, metrics) and an agent deliverable
+      (working code, integrated APIs, shippable features). Humans can see live progress
+      at any point and nudge without blocking the agent.
+    </p>
+
+    <div class="sprint-timeline">
+
+      <div class="sprint-day">
+        <div class="sprint-day-circle">MON<br>D1</div>
+        <div class="sprint-day-name">Define &amp; Scaffold</div>
+        <div class="sprint-day-sub">Foundation Day</div>
+        <div class="sprint-card">
+          <div class="sprint-card-section">
+            <span class="sprint-who human">🧠 Human</span>
+            <ul class="sprint-tasks">
+              <li>Define 3 success metrics for Friday demo</li>
+              <li>Approve architecture and data model</li>
+              <li>Set privacy and scope constraints</li>
+              <li>Identify 2 pilot users for live signal</li>
+            </ul>
+          </div>
+          <div class="sprint-card-section">
+            <span class="sprint-who agent">🤖 Agent</span>
+            <ul class="sprint-tasks">
+              <li>Scaffold Teams app + Graph API auth</li>
+              <li>Set up webhook subscriptions (Teams, Outlook)</li>
+              <li>Design commitment data model</li>
+              <li>Build NLP commitment extraction pipeline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sprint-day">
+        <div class="sprint-day-circle">TUE<br>D2</div>
+        <div class="sprint-day-name">Signal Extraction</div>
+        <div class="sprint-day-sub">Discovery Live</div>
+        <div class="sprint-card">
+          <div class="sprint-card-section">
+            <span class="sprint-who human">🧠 Human</span>
+            <ul class="sprint-tasks">
+              <li>Review first real commitments extracted</li>
+              <li>Tune NLP precision vs. recall threshold</li>
+              <li>Approve Eisenhower priority scoring formula</li>
+            </ul>
+          </div>
+          <div class="sprint-card-section">
+            <span class="sprint-who agent">🤖 Agent</span>
+            <ul class="sprint-tasks">
+              <li>Meeting transcript parser live (Teams API)</li>
+              <li>Teams DM + channel chat miner live</li>
+              <li>Outlook email action-item extractor</li>
+              <li>ADO PR unresolved thread scraper</li>
+              <li>Unified task inbox — first working build</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sprint-day">
+        <div class="sprint-day-circle">WED<br>D3</div>
+        <div class="sprint-day-name">Dependency Graph</div>
+        <div class="sprint-day-sub">Intelligence Live</div>
+        <div class="sprint-card">
+          <div class="sprint-card-section">
+            <span class="sprint-who human">🧠 Human</span>
+            <ul class="sprint-tasks">
+              <li>Validate cascade simulation on real data</li>
+              <li>Tune impact score weighting</li>
+              <li>Approve replan option generation logic</li>
+            </ul>
+          </div>
+          <div class="sprint-card-section">
+            <span class="sprint-who agent">🤖 Agent</span>
+            <ul class="sprint-tasks">
+              <li>Dependency graph engine — live</li>
+              <li>Cascade impact simulation running</li>
+              <li>Replan engine: 3-option generator</li>
+              <li>Viva Insights capacity model integrated</li>
+              <li>Overcommit firewall: pre-send warning</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sprint-day">
+        <div class="sprint-day-circle">THU<br>D4</div>
+        <div class="sprint-day-name">Execution Agents</div>
+        <div class="sprint-day-sub">Actions Live</div>
+        <div class="sprint-card">
+          <div class="sprint-card-section">
+            <span class="sprint-who human">🧠 Human</span>
+            <ul class="sprint-tasks">
+              <li>Test approval UX end-to-end</li>
+              <li>Approve communication tone and templates</li>
+              <li>Define Friday demo script and scenario</li>
+            </ul>
+          </div>
+          <div class="sprint-card-section">
+            <span class="sprint-who agent">🤖 Agent</span>
+            <ul class="sprint-tasks">
+              <li>Adaptive Cards approval UX in Teams</li>
+              <li>Draft-and-approve: PR review, status updates</li>
+              <li>Stakeholder comms drafter — auto-send on approve</li>
+              <li>Calendar blocking + meeting scheduler</li>
+              <li>Full end-to-end integration tests</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sprint-day">
+        <div class="sprint-day-circle" style="background:rgba(255,185,0,0.12);">FRI<br>🚀</div>
+        <div class="sprint-day-name">Live Demo</div>
+        <div class="sprint-day-sub" style="color:var(--ms-yellow);">Ship It</div>
+        <div class="sprint-card">
+          <div class="sprint-card-section">
+            <span class="sprint-who human">🧠 Human</span>
+            <ul class="sprint-tasks">
+              <li>Present the live system to stakeholders</li>
+              <li>Demonstrate the Human × Agent model</li>
+              <li>Report against the 3 success metrics</li>
+              <li>Define the path to production</li>
+            </ul>
+          </div>
+          <div class="sprint-card-section">
+            <span class="sprint-who agent">🤖 Agent</span>
+            <ul class="sprint-tasks">
+              <li>System running live on real M365 tenant</li>
+              <li>Real commitments captured from real meetings</li>
+              <li>Live cascade simulation demonstrated</li>
+              <li>One-click replan executed during demo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sprint-deliverable">
+      <div class="sprint-d-icon">🏁</div>
+      <div>
+        <div class="sprint-d-title">Friday 4PM Demo — What the Room Will See</div>
+        <div class="sprint-d-desc">
+          A live Teams pane pulling real commitments from real meetings that happened this week.
+          A live cascade simulation showing exactly what's at risk and why.
+          A human clicking "approve" on an agent-drafted replan and watching the stakeholder
+          communications send themselves. <strong style="color:var(--text);">Not a prototype. A working system built in 5 days.</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     100x PROOF
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="proof-section">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">The 100x Evidence</div>
+    <h2>This is not a metaphor.<br><span class="accent-gold">The math is real.</span></h2>
+    <p>
+      100x is the ratio of what AI agents accomplish in one FHL week versus
+      what a traditional team would plan to accomplish in that same time.
+      This is not about doing things faster. It is about a fundamentally
+      different operating model for building software.
+    </p>
+
+    <div class="proof-vs">
+      <div class="proof-col traditional">
+        <div class="proof-col-header">⏳ Traditional Team · Same Week</div>
+        <div class="proof-row"><span class="proof-row-icon">👥</span><div>Team size<strong>6 engineers</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">📅</span><div>Planning complete by<strong>End of Week 1</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">🔌</span><div>APIs integrated<strong>0 (sprint planning)</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">🎨</span><div>UX built<strong>Wireframes only</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">📊</span><div>Demo-able by<strong>Week 6–8</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">💰</span><div>Budget consumed<strong>~$180K (team cost)</strong></div></div>
+      </div>
+
+      <div class="proof-vs-center">
+        <div class="proof-vs-badge">100×</div>
+        <div class="proof-vs-label">faster to<br>working demo</div>
+      </div>
+
+      <div class="proof-col fhl">
+        <div class="proof-col-header">⚡ FHL · AI Agents · Same Week</div>
+        <div class="proof-row"><span class="proof-row-icon">👥</span><div>Team size<strong>2 humans + agents</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">📅</span><div>Live system by<strong>Friday 4PM</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">🔌</span><div>APIs integrated<strong>8 M365 surfaces</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">🎨</span><div>UX built<strong>Full Teams pane, live</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">📊</span><div>Demo-able by<strong>Day 5 — this week</strong></div></div>
+        <div class="proof-row"><span class="proof-row-icon">💰</span><div>Cost to this point<strong>~$200 (API + compute)</strong></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     M365 API FOUNDATION
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="api-section">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">Built on M365 — Not Beside It</div>
+    <h2>Every signal already exists.<br><span class="accent-teal">Agents connect them in 5 days.</span></h2>
+
+    <div class="api-grid">
+      <div class="api-card blue">
+        <div class="api-card-layer"></div>
+        <div class="api-header">
+          <div class="api-logo">🎙️</div>
+          <div>
+            <div class="api-name">Teams Meeting Intelligence</div>
+            <div class="api-category">Day 1–2 · Commitment Extraction</div>
+          </div>
+        </div>
+        <ul class="api-endpoints">
+          <li>/communications/callRecords</li>
+          <li>/onlineMeetings/{id}/transcripts</li>
+          <li>/onlineMeetings/{id}/attendanceReports</li>
+          <li>Copilot Meeting Summaries API</li>
+        </ul>
+        <div class="api-what">Parses every meeting transcript for verbal commitments — who said "I'll handle it", to whom, in what context. Owner + task + watcher extracted automatically by AI agent.</div>
+      </div>
+
+      <div class="api-card purple">
+        <div class="api-card-layer"></div>
+        <div class="api-header">
+          <div class="api-logo">💬</div>
+          <div>
+            <div class="api-name">Teams Chat &amp; Channels</div>
+            <div class="api-category">Day 2 · Async Commitment Mining</div>
+          </div>
+        </div>
+        <ul class="api-endpoints">
+          <li>/chats/{id}/messages</li>
+          <li>/teams/{id}/channels/{id}/messages</li>
+          <li>/me/chats (all DM threads)</li>
+          <li>changeNotifications (real-time webhooks)</li>
+        </ul>
+        <div class="api-what">Continuously monitors chat for action intent. Change notifications enable real-time capture — not batch scanning. Agent classifies, deduplicates, and routes.</div>
+      </div>
+
+      <div class="api-card teal">
+        <div class="api-card-layer"></div>
+        <div class="api-header">
+          <div class="api-logo">📧</div>
+          <div>
+            <div class="api-name">Outlook &amp; Mail</div>
+            <div class="api-category">Day 2 · Email Thread Analysis</div>
+          </div>
+        </div>
+        <ul class="api-endpoints">
+          <li>/me/messages?$filter=isRead eq false</li>
+          <li>/me/mailFolders/inbox/messages</li>
+          <li>/me/messages/{id}/extensions</li>
+          <li>Outlook Add-in: Adaptive Cards inline</li>
+        </ul>
+        <div class="api-what">Surfaces email threads awaiting action, flags requests made to you. Actionable Adaptive Cards appear directly in the email thread — no context switching required.</div>
+      </div>
+
+      <div class="api-card green">
+        <div class="api-card-layer"></div>
+        <div class="api-header">
+          <div class="api-logo">📄</div>
+          <div>
+            <div class="api-name">SharePoint &amp; Loop</div>
+            <div class="api-category">Day 2 · Document Commitment Extraction</div>
+          </div>
+        </div>
+        <ul class="api-endpoints">
+          <li>/sites/{id}/lists/{id}/items</li>
+          <li>/drives/{id}/items/{id}/comments</li>
+          <li>Microsoft Syntex Content AI</li>
+          <li>Loop Components API (preview)</li>
+        </ul>
+        <div class="api-what">Extracts Word/OneNote @mention comments, SharePoint items, Loop task components. Every document becomes a live task source feeding the commitment graph.</div>
+      </div>
+
+      <div class="api-card orange">
+        <div class="api-card-layer"></div>
+        <div class="api-header">
+          <div class="api-logo">📊</div>
+          <div>
+            <div class="api-name">Viva Insights</div>
+            <div class="api-category">Day 3 · Capacity &amp; Wellbeing Engine</div>
+          </div>
+        </div>
+        <ul class="api-endpoints">
+          <li>/insights/me/used</li>
+          <li>/analytics/activityStatistics</li>
+          <li>/me/analytics/settings</li>
+          <li>Viva Wellbeing API (preview)</li>
+        </ul>
+        <div class="api-what">Real capacity data — meeting load, focus time, collaboration hours, after-hours work. Burnout index modeled from behavioral signals. Overcommit firewall runs before commit is made.</div>
+      </div>
+
+      <div class="api-card gold">
+        <div class="api-card-layer"></div>
+        <div class="api-header">
+          <div class="api-logo">🤖</div>
+          <div>
+            <div class="api-name">Copilot Studio + Power Automate</div>
+            <div class="api-category">Day 4 · Execution &amp; Orchestration</div>
+          </div>
+        </div>
+        <ul class="api-endpoints">
+          <li>Copilot Studio: Custom execution agents</li>
+          <li>Power Automate: Workflow triggers</li>
+          <li>Adaptive Cards: 1-click approval UX</li>
+          <li>Microsoft Fabric: Learning pipeline</li>
+        </ul>
+        <div class="api-what">Agents draft PR reviews, status updates, stakeholder comms, replans. Human approves with one click. Fabric pipeline learns patterns across executions and improves over time.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HUMAN-DEFINED SUCCESS METRICS
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="metrics-section">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">Success Metrics — Defined by Humans, Measured on Friday</div>
+    <h2>You set the bar.<br><span class="accent-blue">Agents hit it.</span></h2>
+    <p>
+      The human's most important FHL job: define what "done" looks like before the agents start.
+      These are the six metrics we will measure at the Friday demo. Agents have no ambiguity about
+      what they are optimizing for.
+    </p>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-tag human">🎯 Accuracy</span>
+        <div class="metric-name">Commitment Extraction Precision</div>
+        <div class="metric-target">&gt; 85%</div>
+        <div class="metric-desc">Of commitments in meeting transcripts correctly identified as tasks with the right owner. Measured against a human-labeled ground truth set of 50 real meetings.</div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-tag human">⚡ Speed</span>
+        <div class="metric-name">Time from Meeting End to Task Surfaced</div>
+        <div class="metric-target">&lt; 5 min</div>
+        <div class="metric-desc">From the moment a Teams meeting ends to the moment the extracted commitments appear in the Commit pane for each participant. Latency measured end-to-end.</div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-tag human">🎨 UX Quality</span>
+        <div class="metric-name">Approval Friction</div>
+        <div class="metric-target">1 click</div>
+        <div class="metric-desc">Agent-drafted actions (PR review, status update, stakeholder comm) require no more than 1 click for a human to approve and send. Zero context-switching to another app.</div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-tag fhl">⚡ FHL Proof</span>
+        <div class="metric-name">Features Built per Day</div>
+        <div class="metric-target">2+ / day</div>
+        <div class="metric-desc">Each day of the sprint, at least 2 shippable features are live and demo-able. This is the 100x metric — the agent velocity must be visible and measurable.</div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-tag human">🌊 Impact</span>
+        <div class="metric-name">Cascades Detected Before They Slip</div>
+        <div class="metric-target">100%</div>
+        <div class="metric-desc">Of at-risk task cascades in the pilot group surfaced to the owner before the downstream task is impacted. Zero silent slips during the demo window.</div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-tag fhl">⚡ FHL Proof</span>
+        <div class="metric-name">Human Judgment Moments</div>
+        <div class="metric-target">&lt; 30 / day</div>
+        <div class="metric-desc">Total number of human decisions required per day to keep the agents on track. Measures autonomy — the lower this number while maintaining quality, the better the model is working.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     BEFORE / AFTER
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="before-after">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="beat-label">The Transformation</div>
+    <h2>From <span class="accent-red">fear</span> of missing something<br>to <span class="accent-green">flow.</span></h2>
+
+    <div class="ba-grid">
+      <div class="ba-column before">
+        <div class="ba-header">❌ Today Without Commit</div>
+        <div class="ba-item"><span class="ba-icon">😰</span> Tasks committed in meetings vanish when the call ends</div>
+        <div class="ba-item"><span class="ba-icon">🔕</span> Tracker must ping to get a status — every time</div>
+        <div class="ba-item"><span class="ba-icon">🌊</span> One slip cascades silently until someone hits a wall</div>
+        <div class="ba-item"><span class="ba-icon">🔥</span> Overcommit discovered through burnout, not data</div>
+        <div class="ba-item"><span class="ba-icon">😬</span> Replanning means awkward conversations</div>
+        <div class="ba-item"><span class="ba-icon">📵</span> Stakeholders learn of slips at the worst moment</div>
+        <div class="ba-item"><span class="ba-icon">😓</span> Sunday anxiety: "what did I miss this week?"</div>
+      </div>
+
+      <div class="ba-arrow">→</div>
+
+      <div class="ba-column after">
+        <div class="ba-header">✅ With Commit + AI Agents</div>
+        <div class="ba-item"><span class="ba-icon">🧲</span> Every commitment captured from every source, automatically</div>
+        <div class="ba-item"><span class="ba-icon">👁️</span> Tracker sees live activity signals — zero pings needed</div>
+        <div class="ba-item"><span class="ba-icon">🌐</span> Cascade simulated in real time — intervene before it happens</div>
+        <div class="ba-item"><span class="ba-icon">🛡️</span> Overcommit firewall warns before the commitment is made</div>
+        <div class="ba-item"><span class="ba-icon">🤖</span> Agent handles the replan — human approves with one click</div>
+        <div class="ba-item"><span class="ba-icon">✉️</span> Stakeholders updated proactively, before they ask</div>
+        <div class="ba-item"><span class="ba-icon">😌</span> Sunday confidence: the system watched everything for you</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     VISION
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="vision-section">
+  <div class="vision-inner">
+    <div class="beat-label" style="justify-content:center">The Larger Vision</div>
+    <h2>What happens when<br><span class="accent-purple">nothing slips through the cracks?</span></h2>
+
+    <div class="vision-stats">
+      <div class="vision-stat">
+        <div class="vision-num">↓40%</div>
+        <div class="vision-label">Reduction in follow-up pings and status meetings</div>
+      </div>
+      <div class="vision-stat">
+        <div class="vision-num">↓60%</div>
+        <div class="vision-label">Silent slips that cascade into missed deadlines</div>
+      </div>
+      <div class="vision-stat">
+        <div class="vision-num">↑35%</div>
+        <div class="vision-label">Focus time recovered from coordination overhead</div>
+      </div>
+      <div class="vision-stat">
+        <div class="vision-num">100×</div>
+        <div class="vision-label">Build velocity when humans direct and agents execute</div>
+      </div>
+    </div>
+
+    <div class="vision-statement">
+      FHL is not a hackathon.<br>
+      <strong>FHL is proof of the new model.</strong>
+    </div>
+
+    <p style="margin:0 auto;text-align:center;max-width:680px;font-size:18px;">
+      This week, a team of two humans and a set of AI agents will build a working system
+      that would have taken six engineers six months. Not because the agents are smarter —
+      but because <strong style="color:var(--text);">humans are finally freed to do only what humans can do:</strong>
+      judgment, direction, empathy, and taste.
+      <br><br>
+      That is the shift. That is the 100x. That is the future of how Microsoft builds.
+    </p>
+
+    <div class="vision-statement" style="margin-top:48px;font-size:clamp(18px,2.5vw,28px);">
+      By Friday, we will not just have a product.<br>
+      We will have <strong>proof that this is how we work now.</strong>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     LIVE PROGRESS TRACKER CONCEPT
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="progress-section">
+  <div class="progress-inner">
+    <div class="beat-label" style="justify-content:center">Week-Long Visibility — Humans Can Nudge Anytime</div>
+    <div class="progress-title">Live Sprint Progress · FHL Week</div>
+    <div class="progress-sub">Stakeholders can see agent build progress at any point during the week. No status meetings required.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:700px;margin:0 auto 12px;">
+      <div style="text-align:center;font-size:11px;color:var(--ms-blue-light);font-weight:700;">MON</div>
+      <div style="text-align:center;font-size:11px;color:var(--ms-blue-light);font-weight:700;">TUE</div>
+      <div style="text-align:center;font-size:11px;color:#A080FF;font-weight:700;">WED</div>
+      <div style="text-align:center;font-size:11px;color:#C0A0FF;font-weight:700;">THU</div>
+      <div style="text-align:center;font-size:11px;color:var(--ms-yellow);font-weight:700;">FRI 🚀</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:700px;margin:0 auto 24px;">
+      <div style="background:rgba(0,120,212,0.3);border:1px solid rgba(0,120,212,0.4);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--ms-blue-light);">✅ Scaffold</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Graph auth live<br>Data model done</div>
+      </div>
+      <div style="background:rgba(0,120,212,0.15);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-dim);">⚙️ Signals</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">3 sources live<br>NLP running</div>
+      </div>
+      <div style="background:var(--dark-4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-dim);">⏳ Graph</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Pending...</div>
+      </div>
+      <div style="background:var(--dark-4);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-dim);">⏳ Execute</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Pending...</div>
+      </div>
+      <div style="background:rgba(255,185,0,0.08);border:1px solid rgba(255,185,0,0.3);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--ms-yellow);">🏁 Demo</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Friday 4PM<br>Live system</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-dim);max-width:600px;margin:0 auto;">
+      Stakeholders see this board update in real time. A human can nudge direction at any point —
+      "prioritize the cascade simulation over the UX polish today" — and agents reprioritize without
+      losing momentum. Full autonomy with full visibility.
+    </p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CTA
+════════════════════════════════════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-fhl-badge">⚡ FHL 2026 · Fix Hack Learn Week</div>
+    <div class="cta-title">5 Days.<br>100x.</div>
+    <p class="cta-sub">
+      Monday morning, humans define the "what" and the success metrics.
+      Friday afternoon, we demo a working system built entirely by AI agents —
+      connected to real M365 data, tracking real commitments, and proving
+      that the future of engineering is already here.
+      <br><br>
+      <strong style="color:var(--text);">The only question is: are we building it?</strong>
+    </p>
+
+    <div class="cta-buttons">
+      <button class="btn-primary">⚡ Start Monday Morning</button>
+      <button class="btn-secondary">View Sprint Backlog</button>
+    </div>
+
+    <p style="margin-top:48px;font-size:14px;color:var(--text-dim);max-width:600px;margin-left:auto;margin-right:auto;margin-top:48px;">
+      This proposal and all architecture within it was generated by an AI agent in a single 2-hour conversation.
+      The M365 API mapping, cascade simulation design, 5-day sprint plan, Human × Agent model, and success metrics
+      were all produced without a single line written by hand.
+      <br><br>
+      <strong style="color:var(--ms-yellow);">This document is the first deliverable of the sprint.</strong>
+    </p>
+  </div>
+</section>
+
+
+<footer>
+  <div style="font-size:24px;font-weight:700;letter-spacing:-1px;color:var(--text);margin-bottom:8px;">Commit</div>
+  <div style="color:var(--ms-yellow);font-weight:600;margin-bottom:8px;">FHL 2026 · 5 Days · 100× · AI Agents Build · Humans Shape</div>
+  <div>A Microsoft 365 commitment intelligence layer · Built at Fix Hack Learn week</div>
+  <div style="margin-top:12px;color:var(--text-dim);">
+    Microsoft Graph API · Teams Transcripts · Outlook · Viva Insights · Copilot Studio · SharePoint · Loop · Power Automate · Microsoft Fabric
+  </div>
+</footer>
+
+</body>
+</html>

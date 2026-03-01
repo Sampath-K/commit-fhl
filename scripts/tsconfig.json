@@ -1,0 +1,10 @@
+{
+  "extends": "../src/api/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../dist/scripts",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts", "../src/api/src/types/**/*.ts"]
+}

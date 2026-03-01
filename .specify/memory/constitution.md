@@ -1,5 +1,5 @@
 # Commit FHL — Project Constitution
-> **Version**: 1.1.0
+> **Version**: 1.2.0
 > **Status**: Ratified
 > **Last amended**: 2026-03-01
 > All agents must read and follow every principle. Amendments require human approval + version bump.
@@ -12,6 +12,7 @@
 |---------|------|--------|
 | 1.0.0 | 2026-03-01 | Initial constitution — P-01 through P-17 |
 | 1.1.0 | 2026-03-01 | Added P-18 through P-27 (team structure, engineering standards, psychology layer) |
+| 1.2.0 | 2026-03-01 | Backend changed to C# ASP.NET Core Minimal API (.NET 9) + xUnit; added P-28 (C# backend conventions) and P-29 (live reporting cadence); updated P-20, P-21, P-24 |
 
 ---
 
@@ -231,30 +232,40 @@ Trunk-based development. Short-lived branches. No long-running feature branches.
 
 ### P-20 — Architecture Patterns
 
-**3-layer strict layering** — no layer skipping, no exceptions:
+**3-layer strict layering** — applies to BOTH C# backend and TypeScript frontend. No layer skipping, no exceptions:
 
 ```
-Route Handler  →  Service  →  Repository
-(validate)        (logic)      (storage)
+Endpoint / Route Handler  →  Service  →  Repository
+(validate input)              (logic)     (storage only)
 ```
 
-- Routes: validate input (Zod), call service, return response — NO business logic in routes
-- Services: business logic, AI calls, orchestration — NO direct storage calls
-- Repositories: storage interface only — NO business logic
+- **Endpoints/Routes**: validate input, call one service method, return typed response. NO business logic.
+- **Services**: business logic, AI calls, orchestration. NO direct storage SDK calls.
+- **Repositories**: storage interface only. NO business logic. Direct SDK calls here and nowhere else.
 
-**AppError hierarchy** — all errors must be typed:
+**C# error hierarchy** — all exceptions must be typed (see P-28 for C# conventions):
+```csharp
+CommitException (base)
+  ├── ValidationException    (400 — bad input)
+  ├── AuthException          (401/403 — auth failure)
+  ├── GraphException         (502 — Graph API failure)
+  ├── StorageException       (503 — Table Storage failure)
+  └── AiException            (503 — Azure OpenAI failure)
+```
+
+**TypeScript error hierarchy** — for frontend API error handling:
 ```typescript
 AppError (base)
-  ├── ValidationError    (400 — bad input)
-  ├── AuthError          (401/403 — auth failure)
-  ├── GraphError         (502 — Graph API failure)
-  ├── StorageError       (503 — Table Storage failure)
-  └── AiError            (503 — Azure OpenAI failure)
+  ├── ValidationError    (400)
+  ├── AuthError          (401/403)
+  ├── GraphError         (502)
+  ├── StorageError       (503)
+  └── AiError            (503)
 ```
 
-**Repository pattern**: every storage operation goes through a typed repository interface. Direct SDK calls only inside repository implementations.
+**Repository pattern**: every storage operation goes through a typed repository interface (`ICommitmentRepository`, etc.). Direct SDK calls (`TableClient`, `GraphServiceClient`) only inside repository/client implementations.
 
-### P-21 — TypeScript Conventions
+### P-21 — TypeScript Frontend Conventions
 
 - **`interface`** for object shapes (data structures, API payloads, repository contracts)
 - **`type`** for unions, intersections, and computed types
@@ -307,7 +318,9 @@ Documentation is part of the task. A task is NOT done without:
 
 ### P-24 — Dependency Policy
 
-Before adding any npm package, verify all three criteria:
+Before adding any package (npm or NuGet), verify all three criteria:
+
+**npm packages (frontend):**
 
 | Criterion | Threshold | How to check |
 |-----------|---------|--------------|
@@ -315,7 +328,15 @@ Before adding any npm package, verify all three criteria:
 | Maintenance | Updated within last 12 months | npmjs.com |
 | Security | No HIGH or CRITICAL CVEs | `npm audit` |
 
-If criteria not met, build it in-house or find an alternative. Document the decision in an ADR.
+**NuGet packages (backend):**
+
+| Criterion | Threshold | How to check |
+|-----------|---------|--------------|
+| Publisher | Microsoft or verified publisher | nuget.org |
+| Maintenance | Updated within last 12 months | nuget.org |
+| Security | No HIGH or CRITICAL CVEs | `dotnet list package --vulnerable` |
+
+Prefer official Microsoft Azure SDK packages (`Azure.*`, `Microsoft.*`). If criteria not met, build in-house or find an alternative. Document in an ADR.
 
 ### P-25 — Tech Debt Policy
 
@@ -451,6 +472,99 @@ app/src/config/
 ```
 
 **Message tone**: Supportive, not surveillant. Encouraging, not pressuring. The system works FOR the user, not watches OVER them.
+
+---
+
+### P-28 — C# Backend Conventions
+
+The backend is C# (.NET 9) with ASP.NET Core Minimal API. All agents writing backend code MUST follow these conventions.
+
+**Project structure:**
+```
+src/api/
+├── CommitApi.csproj          ← .NET 9 SDK-style project
+├── Program.cs                ← app entry point, DI registration, route mapping
+├── Models/                   ← record types for request/response shapes (DTOs)
+├── Entities/                 ← domain entities stored in Table Storage
+├── Repositories/             ← IRepository interfaces + implementations
+│   └── CommitmentRepository.cs
+├── Services/                 ← business logic layer
+├── Extractors/               ← transcript, chat, email, ADO extractors
+├── Graph/                    ← dependency linker, cascade simulator, impact scorer
+├── Agents/                   ← status drafter, calendar blocker, PR reviewer
+├── Auth/                     ← MSAL OBO, Graph client factory
+├── Webhooks/                 ← subscription manager, HMAC validator
+├── Config/                   ← FeatureFlagService, AppInsightsExtensions, PiiScrubber
+├── Exceptions/               ← CommitException hierarchy
+└── Tests/                    ← xUnit test project (separate .csproj)
+    CommitApi.Tests/
+    └── CommitApi.Tests.csproj
+```
+
+**Language conventions:**
+- **Nullable reference types**: enabled — `<Nullable>enable</Nullable>`. Handle null explicitly; no `!` null-forgiving operators except at system boundaries.
+- **Record types** for immutable DTOs: `public record CommitmentRequest(string Title, string OwnerId);`
+- **Interfaces first**: define `ICommitmentRepository` before `CommitmentRepository` — never call concrete type from service layer
+- **PascalCase** for all public identifiers; `_camelCase` for private fields
+- **`async`/`await` throughout** — no `.Result` or `.Wait()` blocking calls
+- **Dependency injection**: register all services in `Program.cs`. No `new` for injected dependencies anywhere in service/repo layer.
+- **Exception handling**: catch `Exception` only at endpoint boundary (global middleware). Let typed exceptions propagate; map to HTTP status in middleware.
+- **JSDoc equivalent**: XML doc comments (`/// <summary>`) on all public methods, interfaces, and records.
+
+**Testing (xUnit):**
+- Test project: `src/api/CommitApi.Tests/CommitApi.Tests.csproj`
+- Use `Moq` for mocking interfaces
+- Test class naming: `CommitmentRepositoryTests`, `CommitmentServiceTests`
+- Method naming: `MethodName_Scenario_ExpectedResult` (e.g., `UpsertAsync_NewRecord_ReturnsCreated`)
+- Minimum 90% line coverage; mutation testing with Stryker.NET (score ≥ 80%)
+
+**NuGet packages (approved list):**
+```xml
+<PackageReference Include="Microsoft.Graph" Version="5.*" />
+<PackageReference Include="Azure.Data.Tables" Version="12.*" />
+<PackageReference Include="Azure.Identity" Version="1.*" />
+<PackageReference Include="Azure.AI.OpenAI" Version="2.*" />
+<PackageReference Include="Azure.Data.AppConfiguration" Version="1.*" />
+<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.*" />
+<PackageReference Include="Microsoft.Identity.Web" Version="3.*" />
+<PackageReference Include="Swashbuckle.AspNetCore" Version="6.*" />
+<PackageReference Include="xunit" Version="2.*" />
+<PackageReference Include="Moq" Version="4.*" />
+<PackageReference Include="coverlet.collector" Version="6.*" />
+```
+
+### P-29 — Live Reporting Cadence
+
+The build story, sprint reports, and dashboard MUST always reflect the last 5 minutes of work. Stale documentation is a defect.
+
+**Mandatory update triggers** — update immediately on any of these events:
+- A task is marked `[x]` done in `tasks.md`
+- A new `[~]` task is started
+- A blocker is discovered or resolved
+- A human decision is made or a decision is unblocked
+- A git commit is pushed
+
+**Files that must stay current (≤ 5 min lag):**
+
+| File | What to update |
+|------|----------------|
+| `.agents/commit-fhl/SESSION.md` | `lastCompletedTask`, `nextTask`, `blockers`, `confidence` |
+| `.agents/commit-fhl/tasks.md` | Task status (`[ ]` → `[~]` → `[x]`) |
+| `docs/Commit_Day{N}_Report.html` | Task row class, timestamp, timeline entry |
+| `docs/Commit_Sprint_Dashboard.html` | Task counts, activity feed (newest entry at top), overall stats |
+
+**Timeline entry format** (for day reports and dashboard):
+```html
+<div class="tl-item agent">
+  <div class="tl-time">2026-03-0X HH:MM</div>
+  <div class="tl-text">T-NNN complete — [one-line description]
+    <span class="tl-tag">Agent</span>
+  </div>
+  <div class="tl-detail">[key files created, tests passing, acceptance criteria met]</div>
+</div>
+```
+
+**Non-negotiable**: An agent session MUST NOT end without updating SESSION.md and the active day report. If you are about to run out of context, update the reports FIRST before doing any other cleanup.
 
 ---
 

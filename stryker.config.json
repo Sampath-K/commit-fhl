@@ -1,0 +1,23 @@
+{
+  "$schema": "https://stryker-mutator.io/schemas/stryker-core.json",
+  "packageManager": "npm",
+  "reporters": ["html", "clear-text", "progress"],
+  "testRunner": "jest",
+  "jest": {
+    "projectType": "custom",
+    "configFile": "tests/jest.config.ts"
+  },
+  "checkers": ["typescript"],
+  "tsconfigFile": "src/api/tsconfig.json",
+  "mutate": [
+    "src/api/src/**/*.ts",
+    "!src/api/src/types/**",
+    "!src/api/src/index.ts"
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 70,
+    "break": 70
+  },
+  "timeoutMS": 60000
+}

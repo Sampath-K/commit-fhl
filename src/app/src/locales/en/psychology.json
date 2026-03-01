@@ -1,0 +1,110 @@
+{
+  "deliveryScore": {
+    "label": "Delivery Score",
+    "explainTitle": "How your score is calculated",
+    "onTimeRate": "On-time rate",
+    "cascadeHealth": "Cascade health",
+    "overcommitRate": "Reliability",
+    "consistency": "Consistency streak",
+    "trending": {
+      "up": "\u2191 Trending up",
+      "down": "\u2193 Trending down",
+      "flat": "\u2192 Stable"
+    }
+  },
+  "streak": {
+    "label_one": "{{count}} day streak",
+    "label_other": "{{count}} day streak",
+    "protect": "Don't break your {{count}}-day streak \u2014 1 task to close today",
+    "new": "Start a new streak today",
+    "milestones": {
+      "3": "3 days in a row!",
+      "7": "One week strong!",
+      "14": "Two weeks \u2014 you're building a habit!",
+      "30": "30 days! You're a force of nature."
+    }
+  },
+  "level": {
+    "label": "Level {{level}}",
+    "names": {
+      "1": "Getting Started",
+      "2": "Consistent",
+      "3": "Reliable",
+      "4": "Trusted",
+      "5": "Multiplier"
+    },
+    "xpToNext": "{{xp}} XP to Level {{next}}",
+    "maxLevel": "Maximum level reached",
+    "levelUp": "Level {{level}} \u2014 {{name}}!"
+  },
+  "progress": {
+    "none": "Let's get started \u2014 here's your first task",
+    "low": "Good progress \u2014 {{done}} of {{total}} done",
+    "mid": "Almost there \u2014 {{remaining}} remaining",
+    "high": "One more! You're so close",
+    "complete": "All clear! Amazing day"
+  },
+  "completionAffirmations": [
+    "Done. Nice work.",
+    "That's one less thing standing between you and Friday.",
+    "Checked. Moving on.",
+    "Done \u2014 and your team can move forward now.",
+    "That's clear.",
+    "Done. You made it easier for everyone today.",
+    "Checked. That one mattered.",
+    "Closed. Well done.",
+    "Done. On time, every time.",
+    "Checked. You said you would, and you did.",
+    "Done. The cascade stops here.",
+    "Clear. Good work.",
+    "Marked done. Clean.",
+    "Closed. Your reliability score thanks you.",
+    "Done. One less blocker in the world.",
+    "Checked. Impact score going down.",
+    "Done. That unblocked someone.",
+    "Clear. You're on a roll.",
+    "Closed. Progress.",
+    "Done. Keep going."
+  ],
+  "insight": {
+    "cascadesPreventedOne": "Commit prevented {{count}} cascade this week",
+    "cascadesPreventedOther": "Commit prevented {{count}} cascades this week",
+    "earlyUpdates": "{{count}} teammates got early updates \u2014 no one was surprised",
+    "timeSaved": "You saved approximately {{minutes}} minutes of coordination overhead",
+    "unblockedPerson": "Someone was unblocked 2 days early because of your proactive communication",
+    "noSurprises": "No surprises from your work in {{days}} days. That's rare."
+  },
+  "morningDigest": {
+    "streak": "{{count}} days in a row. Today: {{tasks}} things to close.",
+    "score": "You're coming off a {{score}}-point delivery week. Let's keep it going.",
+    "greeting_one": "Good morning. Here's your day \u2014 {{count}} commitment, {{atRisk}} needs attention today.",
+    "greeting_other": "Good morning. Here's your day \u2014 {{count}} commitments, {{atRisk}} need attention today."
+  },
+  "milestone": [
+    "You've prevented more cascades than 90% of users this week",
+    "That was your 10th commitment closed on time in a row",
+    "No surprises from your team in 3 weeks. That's rare.",
+    "Your delivery score improved this month",
+    "You managed a complex cascade. That's genuinely impressive.",
+    "You've been consistent for 2 weeks straight.",
+    "Your team's delivery health improved while you were using Commit.",
+    "You unblocked someone before they even knew they were blocked.",
+    "Zero cascade failures this week. Perfect.",
+    "You approved 5 agent drafts today \u2014 saving hours of manual coordination.",
+    "Your on-time rate hit 90% for the first time.",
+    "You responded to every at-risk signal this week.",
+    "Your burnout trend is improving. Good pacing.",
+    "You managed your overcommit firewall perfectly this week.",
+    "Three at-risk tasks proactively handled. Nice.",
+    "Your cascade health score is in the top tier.",
+    "You've been the most reliable person in your dependency chain.",
+    "Commit saved your team from a surprise delay.",
+    "Your load index stayed healthy all week.",
+    "You set a personal best delivery score this month."
+  ],
+  "focusMode": {
+    "label": "Focus Mode",
+    "subtitle": "One task at a time",
+    "exit": "Back to all tasks"
+  }
+}

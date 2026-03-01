@@ -1,0 +1,64 @@
+{
+  "app": {
+    "title": "Commit",
+    "loading": "Loading your commitments...",
+    "error": {
+      "generic": "Something went wrong. Please try again.",
+      "graphConnection": "Unable to connect to Microsoft Graph."
+    }
+  },
+  "morningDigest": {
+    "greeting": "Good morning",
+    "subtitle": "Here's your day",
+    "noCommitments": "All clear — no commitments today.",
+    "commitmentsCount_one": "{{count}} commitment",
+    "commitmentsCount_other": "{{count}} commitments",
+    "atRiskCount_one": "{{count}} needs attention",
+    "atRiskCount_other": "{{count}} need attention"
+  },
+  "commitPane": {
+    "header": {
+      "title": "My Commitments",
+      "refresh": "Refresh"
+    },
+    "quadrants": {
+      "urgentImportant": "Act Today",
+      "notUrgentImportant": "Schedule",
+      "urgentNotImportant": "Delegate",
+      "notUrgentNotImportant": "Defer"
+    },
+    "card": {
+      "sourceLink": "View source",
+      "impactScore": "Impact",
+      "dueIn": "Due in {{days}} days",
+      "overdue": "Overdue by {{days}} days",
+      "dueToday": "Due today",
+      "blockedBy": "Blocked by {{count}} tasks",
+      "blocking": "Blocking {{count}} tasks"
+    },
+    "empty": "All clear!",
+    "emptySubtitle": "No commitments — enjoy your focus time."
+  },
+  "cascadeView": {
+    "title": "Cascade Impact",
+    "impactScore": "Impact Score",
+    "affectedTasks": "{{count}} tasks affected",
+    "replanOptions": "View replan options",
+    "propagating": "Simulating cascade..."
+  },
+  "approvalCard": {
+    "approve": "Approve & Send",
+    "edit": "Edit First",
+    "skip": "Skip",
+    "context": "Why this matters",
+    "draft": "Draft"
+  },
+  "actions": {
+    "approve": "Approve",
+    "skip": "Skip",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "viewDetails": "View details"
+  }
+}

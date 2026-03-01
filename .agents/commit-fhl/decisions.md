@@ -139,3 +139,17 @@ These were made during the planning session and are locked unless human override
 **Date**: 2026-03-01
 **Decision**: Use Adaptive Cards for all agent approval interactions
 **Rationale**: Cards work in Teams, Outlook, and Teams mobile. Zero additional UX code. Teams Toolkit has native support. Keeps approval experience in the message stream, not a new tab.
+
+### DA-005: C# ASP.NET Core Minimal API for backend (supersedes D-002 Node.js)
+**Date**: 2026-03-01
+**Decided by**: Human
+**Decision**:
+- **Backend language**: C# (.NET 9)
+- **Backend framework**: ASP.NET Core Minimal API
+- **Backend test framework**: xUnit
+- **NuGet packages**: Microsoft.Graph, Azure.Data.Tables, Azure.Identity, Azure.AI.OpenAI, Azure.Extensions.AspNetCore.Configuration.Secrets, Azure.Data.AppConfiguration, Microsoft.ApplicationInsights.AspNetCore, Microsoft.Identity.Web, Swashbuckle.AspNetCore
+- **Frontend stays unchanged**: TypeScript + React (as in D-002)
+- **TypeScript types**: Moved to `src/app/src/types/api.ts` — frontend-only API contract types
+- **C# models**: Live in `src/api/Models/` — mirror shape of TypeScript types
+**Rationale**: Human explicitly chose C# over Node.js. C# is Microsoft-native, better type safety at scale, Production-grade Graph/Azure SDK support, and the team has C# expertise. ASP.NET Core Minimal API gives clean, low-ceremony route handlers. xUnit is the standard .NET test framework.
+**Impact**: All previously created TypeScript backend files (commitmentStore.ts, FeatureFlagService.ts, AppInsightsClient.ts, PiiScrubber.ts) were deleted and reimplemented in C#. The Node.js package.json and tsconfig.json for api/ were removed.
