@@ -145,6 +145,44 @@ export interface UserMotivationState {
   lastStreakDate: string;
 }
 
+// ─── Backend API Response Shapes (Day 3 routes) ───────────────────────────────
+
+/** Matches C# AffectedTask record returned by /graph/cascade */
+export interface AffectedTask {
+  taskId: string;
+  title: string;
+  cumulativeSlipDays: number;
+  originalEta?: string;   // ISO 8601
+  newEta?: string;        // ISO 8601
+  calendarPressure: number;
+}
+
+/** Response shape of POST /api/v1/graph/cascade */
+export interface CascadeApiResponse {
+  rootTaskId: string;
+  slipDays: number;
+  impactScore: number;
+  affectedCount: number;
+  affectedTasks: AffectedTask[];
+}
+
+/** Matches C# ReplanOption record returned by /graph/replan */
+export interface ReplanApiOption {
+  optionId: string;          // "A" | "B" | "C"
+  label: string;
+  description: string;
+  confidence: number;
+  requiredActions: string[];
+}
+
+/** Approval decision payload for POST /api/v1/approvals */
+export interface ApprovalDecision {
+  draftId: string;
+  commitmentId: string;
+  decision: 'approve' | 'edit' | 'skip';
+  editedContent?: string;
+}
+
 // ─── API Response Envelope ────────────────────────────────────────────────────
 
 /** Standard API response envelope — all routes return this shape. */

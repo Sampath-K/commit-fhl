@@ -19,17 +19,17 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 4 — Thursday (active) |
-| **Phase** | Dependency Graph — Day 3 complete ✅ |
+| **Sprint Day** | Day 4 — Thursday (complete) |
+| **Phase** | Execution Agents + Psychology Layer — Day 4 complete ✅ |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Day 3 complete — T-020–T-024, T-026 all done |
-| **Next task** | T-027 (Canvas: CascadeView component) → T-028 (Forge: Adaptive Card template) → T-029 (Forge: statusUpdateDrafter) in parallel |
+| **Last completed task** | Day 4 complete — T-027–T-032, T-C07, T-034 all done |
+| **Next task** | T-035 (Lens: integration test suite) → T-036 (Seed: load demo env) → T-038 (Forge: performance pass) |
 | **Blockers** | D-003 — Azure OpenAI endpoint/key needed before T-011 (NLP pipeline). Add to `.env` |
 | **Human decisions needed** | T-025 (Human review of cascade on 2 real at-risk tasks → D-005) |
 | **Build status** | Day 3 complete — cascade engine, impact scorer, Viva Insights, risk detector, replan engine all live |
-| **Last updated** | 2026-03-01 (Day 3 complete) |
+| **Last updated** | 2026-03-01 (Day 4 complete) |
 | **Constitution version** | v1.2.0 (P-01 through P-29) |
 
 ---
@@ -77,6 +77,19 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Replan generator** | `src/api/Replan/ReplanGenerator.cs` | ✅ Options A/B/C with confidence levels |
 | **Graph routes** | `POST /graph/build`, `POST /graph/cascade`, `POST /graph/replan`, `GET /capacity` | ✅ Wired in Program.cs |
 | **Graph models** | `src/api/Models/Graph/`, `src/api/Models/Capacity/` | ✅ GraphEdge, CascadeResult, ReplanOption, CapacitySnapshot |
+| **Adaptive Card builder** | `src/api/Agents/AdaptiveCardBuilder.cs` | ✅ Draft card + info card |
+| **Status update drafter** | `src/api/Agents/StatusUpdateDrafter.cs` | ✅ Per-watcher Teams messages for Option C |
+| **Overcommit firewall** | `src/api/Agents/OvercommitFirewall.cs` | ✅ Load > 90% warning draft |
+| **Calendar blocker** | `src/api/Agents/CalendarBlocker.cs` | ✅ Creates 2hr focus event via Graph |
+| **PR review drafter** | `src/api/Agents/PrReviewDrafter.cs` | ✅ ADO diff + thread → structured review |
+| **Motivation service** | `src/api/Services/MotivationService.cs` | ✅ Delivery score, streak, XP, level |
+| **Agent models** | `src/api/Models/Agents/` | ✅ AgentDraft, ApprovalDecision |
+| **Approval route** | `POST /api/v1/approvals` | ✅ approve/edit/skip + telemetry |
+| **Motivation route** | `GET /api/v1/users/{userId}/motivation` | ✅ Full state for psychology layer |
+| **Psychology hooks** | `src/app/src/hooks/` | ✅ useDeliveryScore, useStreak, useCompetencyLevel, usePsychologyEvents |
+| **Psychology components** | `src/app/src/components/psychology/` | ✅ 8 components: DeliveryScore, StreakBadge, CompetencyLevel, CelebrationLayer, MorningDigest, InsightCard, FocusMode, MotivationalNudge |
+| **CascadeView** | `src/app/src/components/core/CascadeView.tsx` | ✅ Stagger reveal, at-risk highlights, replan panel |
+| **ApprovalCard** | `src/app/src/components/core/ApprovalCard.tsx` | ✅ Approve/Edit/Skip, fires /api/v1/approvals |
 
 ---
 
@@ -110,7 +123,7 @@ AFTER EXTRACTORS DONE (sequential dependency):
 | Mon D1 | ✅ Complete | C# API, auth, storage, webhooks, React shell | feat: Day1 |
 | Tue D2 | ✅ Complete | 4 extractors, NLP pipeline, dedup, Eisenhower scorer, CommitPane wired | feat: Day2 |
 | Wed D3 | ✅ Complete | Cascade engine, impact scorer, Viva Insights, risk detector, replan engine | feat: Day3 |
-| Thu D4 | ⏳ Not started | Execution agents + psychology layer | — |
+| Thu D4 | ✅ Complete | Execution agents + psychology layer + approval loop | feat: Day4 |
 | Fri D5 | ⏳ Not started | Live demo | — |
 
 ---

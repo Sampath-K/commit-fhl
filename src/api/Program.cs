@@ -11,6 +11,7 @@ using CommitApi.Exceptions;
 using CommitApi.Extractors;
 using CommitApi.Graph;
 using CommitApi.Models;
+using CommitApi.Models.Agents;
 using CommitApi.Models.Extraction;
 using CommitApi.Replan;
 using CommitApi.Repositories;
@@ -82,6 +83,15 @@ builder.Services.AddSingleton<IReplanGenerator, ReplanGenerator>();
 
 // ─── Risk Detector (T-024) — 15-min background polling ───────────────────────
 builder.Services.AddHostedService<RiskDetector>();
+
+// ─── Execution Agents (T-028, T-029, T-030, T-031, T-032) ────────────────────
+builder.Services.AddSingleton<IStatusUpdateDrafter, StatusUpdateDrafter>();
+builder.Services.AddSingleton<IOvercommitFirewall,  OvercommitFirewall>();
+builder.Services.AddSingleton<ICalendarBlocker,     CalendarBlocker>();
+builder.Services.AddSingleton<IPrReviewDrafter,     PrReviewDrafter>();
+
+// ─── Motivation Service (T-034) ────────────────────────────────────────────────
+builder.Services.AddSingleton<IMotivationService, MotivationService>();
 
 // ─── Feature Flags ─────────────────────────────────────────────────────────────
 ConfigurationClient? appConfigClient = appConfigConn is not null
@@ -475,6 +485,143 @@ api.MapPost("/graph/replan", async (
     return Results.Ok(new { success = true, options, requestId = Guid.NewGuid() });
 })
 .WithName("GetReplanOptions")
+.WithOpenApi();
+
+// GET /api/v1/users/{userId}/motivation — motivation state (T-034 + psychology layer)
+api.MapGet("/users/{userId}/motivation", async (
+    string              userId,
+    IMotivationService  motivation,
+    IAppInsightsClient  insights) =>
+{
+    var state = await motivation.GetStateAsync(userId);
+
+    insights.TrackUserAction("motivation-view", PiiScrubber.HashValue(userId), "psychology",
+        new Dictionary<string, string>
+        {
+            ["score"]  = state.DeliveryScore.ToString(),
+            ["streak"] = state.StreakDays.ToString(),
+            ["level"]  = state.CompetencyLevel.ToString(),
+        });
+
+    return Results.Ok(new
+    {
+        success               = true,
+        userId                = state.UserId,
+        deliveryScore         = state.DeliveryScore,
+        deliveryScorePrevious = state.DeliveryScorePrevious,
+        streakDays            = state.StreakDays,
+        totalXp               = state.TotalXp,
+        competencyLevel       = state.CompetencyLevel,
+        onTimeRate            = state.OnTimeRate,
+        cascadeHealthRate     = state.CascadeHealthRate,
+        triggersShownToday    = state.TriggersShownToday,
+        lastStreakDate        = state.LastStreakDate,
+        requestId             = Guid.NewGuid(),
+    });
+})
+.WithName("GetMotivationState")
+.WithOpenApi();
+
+// POST /api/v1/approvals — handle Approve / Edit / Skip decisions (T-034)
+api.MapPost("/approvals", async (
+    HttpContext         http,
+    ICommitmentRepository repo,
+    ICalendarBlocker    calendarBlocker,
+    IAppInsightsClient  insights) =>
+{
+    // Parse body
+    ApprovalDecision? decision;
+    try
+    {
+        decision = await http.Request.ReadFromJsonAsync<ApprovalDecision>();
+    }
+    catch
+    {
+        throw new ValidationException("Request body must be a valid ApprovalDecision JSON object");
+    }
+
+    if (decision is null || string.IsNullOrEmpty(decision.CommitmentId) || string.IsNullOrEmpty(decision.DraftId))
+        throw new ValidationException("commitmentId and draftId are required");
+
+    // ── Load commitment ────────────────────────────────────────────────────────
+    // CommitmentId is the RowKey; we need the PartitionKey (userId) — inferred from caller
+    var token  = ExtractBearerToken(http);
+    var userId = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(userId))
+        throw new ValidationException("userId query parameter is required");
+
+    var entity = await repo.GetAsync(userId, decision.CommitmentId);
+    if (entity is null)
+        throw new NotFoundException($"Commitment {decision.CommitmentId} not found");
+
+    // ── Update draft status ────────────────────────────────────────────────────
+    if (entity.AgentDraftJson is not null)
+    {
+        try
+        {
+            var draft = JsonSerializer.Deserialize<AgentDraft>(entity.AgentDraftJson);
+            if (draft is not null && draft.DraftId == decision.DraftId)
+            {
+                var updatedDraft = draft with
+                {
+                    Status        = decision.Decision switch
+                    {
+                        "approve" => "approved",
+                        "edit"    => "edited",
+                        "skip"    => "skipped",
+                        _         => draft.Status,
+                    },
+                    EditedContent = decision.EditedContent,
+                };
+                entity.AgentDraftJson = JsonSerializer.Serialize(updatedDraft);
+                entity.LastActivity   = DateTimeOffset.UtcNow;
+                await repo.UpsertAsync(entity);
+            }
+        }
+        catch (JsonException ex)
+        {
+            app.Logger.LogWarning(ex, "Failed to deserialize AgentDraftJson for commitment {Id}", decision.CommitmentId);
+        }
+    }
+
+    // ── Side effects per decision ──────────────────────────────────────────────
+    var sideEffectResult = decision.Decision switch
+    {
+        "approve" => "executed",
+        "edit"    => "edited-and-executed",
+        "skip"    => "dismissed",
+        _         => "unknown",
+    };
+
+    // Calendar block: if the draft is for a calendar event and was approved, create it
+    if ((decision.Decision is "approve" or "edit") && token is not null)
+    {
+        // Fire-and-forget — calendar creation is best-effort
+        _ = calendarBlocker.BlockFocusTimeAsync(userId, token, entity.Title)
+            .ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    app.Logger.LogWarning(t.Exception, "Calendar block failed for commitment {Id}", decision.CommitmentId);
+            }, TaskScheduler.Default);
+    }
+
+    insights.TrackUserAction("approval", PiiScrubber.HashValue(userId), "approvals",
+        new Dictionary<string, string>
+        {
+            ["decision"]  = decision.Decision,
+            ["draftId"]   = PiiScrubber.HashValue(decision.DraftId),
+            ["result"]    = sideEffectResult,
+        });
+
+    return Results.Ok(new
+    {
+        success    = true,
+        decision   = decision.Decision,
+        result     = sideEffectResult,
+        requestId  = http.TraceIdentifier,
+    });
+})
+.WithName("HandleApproval")
 .WithOpenApi();
 
 app.Run();
