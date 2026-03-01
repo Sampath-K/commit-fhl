@@ -13,7 +13,7 @@ import {
 import { useSpring, animated } from '@react-spring/web';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS } from '../../config/psychology.config';
-import type { CommitmentRecord, EisenhowerQuadrant } from '../../../../api/src/types/index';
+import type { CommitmentRecord, EisenhowerQuadrant } from '../../types/api';
 
 const useStyles = makeStyles({
   pane: {
@@ -127,7 +127,7 @@ function CommitCard({
   });
 
   const daysUntilDue = commitment.dueAt
-    ? Math.ceil((commitment.dueAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((new Date(commitment.dueAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
 
   return (
@@ -135,7 +135,7 @@ function CommitCard({
       <Card
         className={styles.commitCard}
         onClick={onClick}
-        data-testid={`commit-card-${commitment.rowKey}`}
+        data-testid={`commit-card-${commitment.id}`}
       >
         <CardHeader
           header={

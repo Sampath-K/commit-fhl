@@ -8,11 +8,14 @@
     "configFile": "tests/jest.config.ts"
   },
   "checkers": ["typescript"],
-  "tsconfigFile": "src/api/tsconfig.json",
+  "tsconfigFile": "src/app/tsconfig.json",
   "mutate": [
-    "src/api/src/**/*.ts",
-    "!src/api/src/types/**",
-    "!src/api/src/index.ts"
+    "src/app/src/**/*.{ts,tsx}",
+    "!src/app/src/**/*.d.ts",
+    "!src/app/src/main.tsx",
+    "!src/app/src/i18n.ts",
+    "!src/app/src/locales/**",
+    "!src/app/src/config/psychology.config.ts"
   ],
   "thresholds": {
     "high": 80,

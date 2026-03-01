@@ -19,18 +19,18 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 1 — Monday (active) |
-| **Phase** | Building — sprint started |
+| **Sprint Day** | Day 2 — Tuesday (active) |
+| **Phase** | Signal Extraction — Day 1 complete ✅ |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Setup complete — repo, governance, psychology layer spec |
-| **Next task** | T-C04 (Lens: Jest + Stryker + Playwright config) → T-C01 (Shield: Feature flags) → T-006 (Forge: types/index.ts) — run parallel |
-| **Blockers** | D-003 partially done — Azure OpenAI key still needed in .env |
-| **Human decisions needed** | D-003 (Azure OpenAI endpoint/key) before T-011 (NLP pipeline) |
-| **Build status** | Scaffolded — no product code yet |
-| **Last updated** | 2026-03-01 (repo setup + governance complete) |
-| **Constitution version** | v1.1.0 (P-01 through P-27 including Psychology layer) |
+| **Last completed task** | Day 1 complete — all 13 tasks done (T-C01–C05, T-004–009) |
+| **Next task** | T-010 (Forge: transcriptExtractor.cs) → T-011 (Forge: nlpPipeline.cs) → T-012/T-013/T-014 parallel |
+| **Blockers** | D-003 — Azure OpenAI endpoint/key needed before T-011 (NLP pipeline). Add to `.env` |
+| **Human decisions needed** | D-003 (Azure OpenAI endpoint + key) before T-011 can run against real data |
+| **Build status** | Day 1 complete — C# backend + React frontend shell both live |
+| **Last updated** | 2026-03-01 (Day 1 complete) |
+| **Constitution version** | v1.2.0 (P-01 through P-29) |
 
 ---
 
@@ -39,44 +39,59 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | Artifact | Location | Status |
 |----------|----------|--------|
 | GitHub repo | https://github.com/Sampath-K/commit-fhl | ✅ Created (private) |
-| Constitution | `.specify/memory/constitution.md` | ✅ v1.1.0 — P-01 through P-27 |
+| Constitution | `.specify/memory/constitution.md` | ✅ v1.2.0 — P-01 through P-29 |
 | UX Psychology spec | `.specify/memory/ux-psychology.md` | ✅ Complete |
-| Agent role cards | `.specify/memory/agent-roles/` | ✅ All 6 done |
+| Agent role cards | `.specify/memory/agent-roles/` | ✅ All 6 done (Forge updated for C#) |
 | Agent inbox | `.specify/memory/agent-inbox.md` | ✅ Ready |
 | ADR template | `.specify/memory/adr-template.md` | ✅ Ready |
 | Tech debt tracker | `.specify/memory/tech-debt.md` | ✅ Ready |
 | Spec | `.agents/commit-fhl/spec.md` | ✅ Stable |
 | Architecture plan | `.agents/commit-fhl/plan.md` | ✅ Done |
-| Task list | `.agents/commit-fhl/tasks.md` | ✅ All tasks assigned [Agent: X], T-C01–C07 added |
-| Decision log | `.agents/commit-fhl/decisions.md` | ✅ D-001, D-002 done; D-003 partial |
-| Agent instructions | `.agents/commit-fhl/AGENT_INSTRUCTIONS.md` | ✅ Updated with multi-agent section |
-| Directory structure | `src/api/`, `src/app/`, `tests/`, `scripts/`, `infra/` | ✅ Created |
-| Source code | None yet | ⏳ Day 1 |
+| Task list | `.agents/commit-fhl/tasks.md` | ✅ Day 1 all [x]; Day 2 pending |
+| Decision log | `.agents/commit-fhl/decisions.md` | ✅ DA-005 (C# backend) added |
+| Agent instructions | `.agents/commit-fhl/AGENT_INSTRUCTIONS.md` | ✅ Updated for C# + multi-agent |
+| **C# API project** | `src/api/CommitApi.csproj` | ✅ .NET 9, all DI wired |
+| **Exceptions** | `src/api/Exceptions/CommitException.cs` | ✅ Full hierarchy |
+| **Repository** | `src/api/Repositories/CommitmentRepository.cs` | ✅ Azure Table Storage |
+| **Feature flags** | `src/api/Config/FeatureFlagService.cs` | ✅ 5 flags, 60s cache |
+| **PII scrubber** | `src/api/Config/PiiScrubber.cs` | ✅ SHA-256 hashing |
+| **App Insights** | `src/api/Config/AppInsightsExtensions.cs` | ✅ 4 event types |
+| **Graph auth** | `src/api/Auth/GraphClientFactory.cs` | ✅ MSAL OBO |
+| **Webhooks** | `src/api/Webhooks/SubscriptionManager.cs` | ✅ Graph subscriptions |
+| **Webhook handler** | `src/api/Webhooks/WebhookHandler.cs` | ✅ HMAC validation |
+| **Program.cs** | `src/api/Program.cs` | ✅ All 5 routes wired |
+| **xUnit tests** | `src/api/CommitApi.Tests/` | ✅ 15 tests across 3 suites |
+| **Frontend types** | `src/app/src/types/api.ts` | ✅ Contract types |
+| **i18n** | `src/app/src/i18n.ts` + locales/ | ✅ Teams locale driver |
+| **ESLint i18n rule** | `src/app/eslint.config.js` | ✅ no-literal-string enforced |
+| **CommitPane** | `src/app/src/components/core/CommitPane.tsx` | ✅ Fluent v9, i18n |
+| **App.tsx / main.tsx** | `src/app/src/` | ✅ Teams SDK + TanStack Query |
+| **Vite config** | `src/app/vite.config.ts` | ✅ Port 3000, API proxy |
+| **Test infra** | `jest.config.ts`, `stryker.config.json`, `playwright.config.ts` | ✅ Frontend-only |
+| **Seed scripts** | `scripts/seed-demo.ts`, `scripts/personas/`, `scripts/scenarios/` | ✅ Dry-run passes |
 
 ---
 
-## Day 1 Parallel Dispatch Plan
+## Day 2 Dispatch Plan
 
 ```
-SEQUENTIAL FIRST (types needed by all Forge tasks):
-  T-006  [Forge]     → src/api/src/types/index.ts
+SEQUENTIAL (extractors need types — already done):
 
-PARALLEL BATCH 1 (all independent — launch simultaneously):
-  T-C04  [Lens]      → Jest + Stryker + Playwright config
-  T-C01  [Shield]    → Azure App Configuration + FeatureFlagService.ts
-  T-C03  [Shield]    → Application Insights + PII scrubber middleware
-  T-C02  [Canvas]    → react-i18next + ESLint i18n rule
-  T-C05  [Seed]      → seed-demo.ts + flush-demo.ts scaffold
+PARALLEL BATCH (all independent — launch simultaneously):
+  T-010  [Forge]   → transcriptExtractor.cs (Graph meeting transcripts)
+  T-012  [Forge]   → chatExtractor.cs (Teams DMs/channels)
+  T-013  [Forge]   → emailExtractor.cs (Outlook inbox)
+  T-014  [Forge]   → adoExtractor.cs (ADO PR threads)
 
-AFTER T-006 TYPES DONE (parallel):
-  T-007  [Forge]     → commitmentStore.ts + 5 unit tests
-  T-008  [Shield]    → webhookHandler.ts + HMAC signature validation
-  T-009  [Canvas]    → CommitPane + Morning Digest skeleton
-
-AFTER T-007 STORAGE DONE:
-  T-004  [Shield]    → Teams Toolkit local dev server verification
-  T-005  [Forge]     → MSAL OBO + graphClient.ts → /api/v1/health endpoint
+AFTER EXTRACTORS DONE (sequential dependency):
+  T-011  [Forge]   → nlpPipeline.cs (Azure OpenAI GPT-4o) ← BLOCKED on D-003
+  T-015  [Forge]   → deduplication engine
+  T-016  [Forge]   → Eisenhower priority scorer
+  T-018  [Canvas]  → Wire real data into CommitPane
+  T-019  [Canvas]  → Impact score chip + source links
 ```
+
+**Note**: T-011 requires `AZURE_OPENAI_ENDPOINT` + `AZURE_OPENAI_KEY` in `.env`. Add these before running T-011.
 
 ---
 
@@ -84,8 +99,8 @@ AFTER T-007 STORAGE DONE:
 
 | Day | Status | Key output | Committed |
 |-----|--------|-----------|-----------|
-| Mon D1 | 🔵 In progress | Scaffold + auth + shell | — |
-| Tue D2 | ⏳ Not started | Signal extraction live | — |
+| Mon D1 | ✅ Complete | C# API, auth, storage, webhooks, React shell | feat: Day1 |
+| Tue D2 | 🔵 In progress | Signal extraction live | — |
 | Wed D3 | ⏳ Not started | Cascade engine live | — |
 | Thu D4 | ⏳ Not started | Execution agents + psychology layer | — |
 | Fri D5 | ⏳ Not started | Live demo | — |
