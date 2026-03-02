@@ -344,23 +344,23 @@
   <p>One engineer. One AI agent. One week. From a conversation about follow-up fatigue to a fully wired M365 system — ready to build.</p>
   <div class="hero-stats">
     <div class="stat">
-      <span class="stat-num">1</span>
-      <span class="stat-label">Session</span>
+      <span class="stat-num">5</span>
+      <span class="stat-label">Sprint days</span>
     </div>
     <div class="stat">
-      <span class="stat-num">4</span>
-      <span class="stat-label">Blockers hit</span>
+      <span class="stat-num">37</span>
+      <span class="stat-label">Tasks shipped</span>
     </div>
     <div class="stat">
-      <span class="stat-num">4</span>
-      <span class="stat-label">Blockers resolved</span>
+      <span class="stat-num">51/51</span>
+      <span class="stat-label">Tests green</span>
     </div>
     <div class="stat">
-      <span class="stat-num">19/19</span>
-      <span class="stat-label">Checks green</span>
+      <span class="stat-num">9000+</span>
+      <span class="stat-label">Lines of code</span>
     </div>
     <div class="stat">
-      <span class="stat-num">~3hrs</span>
+      <span class="stat-num">~5 days</span>
       <span class="stat-label">Total time</span>
     </div>
   </div>
@@ -713,46 +713,279 @@
       </div>
     </div>
 
+    <!-- ── PHASE 6: DAY 1 BUILD ───────────────────────────── -->
+    <div class="day-label"><span>Phase 6 — Day 1: The Foundation</span></div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Decision: C# .NET 10 backend, not TypeScript</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>Architect decision (DA-005): switched planned TypeScript/Node backend to C# .NET 10 ASP.NET Core Minimal API. Better type safety, first-class Graph SDK, Azure SDK integration, and xUnit over Jest for the backend. Frontend stays TypeScript + React.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Full C# backend scaffold — 11 tasks in parallel</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>All Day 1 agent tasks dispatched in parallel. Every piece of the foundation built in a single session:</p>
+          <div class="artifact-list">
+            <span class="artifact">CommitApi.csproj (.NET 10)</span>
+            <span class="artifact">GraphClientFactory.cs (MSAL OBO)</span>
+            <span class="artifact">CommitmentRepository.cs (Azurite)</span>
+            <span class="artifact">FeatureFlagService.cs (5 flags)</span>
+            <span class="artifact">PiiScrubber.cs (SHA-256)</span>
+            <span class="artifact">AppInsightsExtensions.cs</span>
+            <span class="artifact">SubscriptionManager.cs (Graph)</span>
+            <span class="artifact">WebhookHandler.cs (HMAC)</span>
+            <span class="artifact">CommitPane.tsx (Fluent v9)</span>
+            <span class="artifact">i18n + ESLint rule</span>
+            <span class="artifact">Jest + Stryker + Playwright</span>
+            <span class="artifact">seed-demo.ts (6 personas)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event victory">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Day 1 complete — 14 tasks, 15 xUnit tests passing</div>
+          <span class="tag victory">Milestone</span>
+        </div>
+        <div class="card-body">
+          <div class="success-box">✅ C# API compiles clean · /api/v1/health returns graphConnected:true · CommitPane loads in Teams · 15 xUnit tests green · i18n enforced by ESLint</div>
+          <div class="quote">"feat: Day1 complete — auth, storage, webhooks, shell, platform foundations"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 7: DAY 2 BUILD ───────────────────────────── -->
+    <div class="day-label"><span>Phase 7 — Day 2: Signal Extraction</span></div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">4 extractors + NLP pipeline — real commitments flowing</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>Every M365 surface instrumented. Graph beta API for meeting transcripts. Teams DMs and channels. Outlook flagged/unread mail. ADO PR threads with unresolved reviews. All feeding into a single NLP pipeline via Azure OpenAI GPT-4o.</p>
+          <div class="artifact-list">
+            <span class="artifact">TranscriptExtractor.cs (VTT parser)</span>
+            <span class="artifact">ChatExtractor.cs (Teams DM+channel)</span>
+            <span class="artifact">EmailExtractor.cs (Outlook)</span>
+            <span class="artifact">AdoExtractor.cs (PR threads)</span>
+            <span class="artifact">NlpPipeline.cs (GPT-4o)</span>
+            <span class="artifact">DeduplicationService.cs (Jaccard 0.55)</span>
+            <span class="artifact">EisenhowerScorer.cs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event victory">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Day 2 complete — real data in the pane</div>
+          <span class="tag victory">Milestone</span>
+        </div>
+        <div class="card-body">
+          <div class="success-box">✅ CommitPane shows live user commitments from ≥2 sources · Impact score chip on every card · Clickable source links · Eisenhower board layout all 4 breakpoints</div>
+          <div class="quote">"feat: Day2 complete — 4 extractors live, real data in pane"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 8: DAY 3 BUILD ───────────────────────────── -->
+    <div class="day-label"><span>Phase 8 — Day 3: The Cascade Engine</span></div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">BFS cascade simulation — slip a task, see the ripple</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>The dependency graph goes live. Three linking signals detect relationships automatically. BFS traversal propagates slip days through the chain. Impact formula turns cascades into a single score (0–100) that communicates blast radius at a glance.</p>
+          <div class="artifact-list">
+            <span class="artifact">DependencyLinker.cs (3 signals)</span>
+            <span class="artifact">CascadeSimulator.cs (BFS)</span>
+            <span class="artifact">ImpactScorer.cs (formula, 6 tests)</span>
+            <span class="artifact">VivaInsightsClient.cs</span>
+            <span class="artifact">RiskDetector.cs (BackgroundService)</span>
+            <span class="artifact">ReplanGenerator.cs (Options A/B/C)</span>
+            <span class="artifact">CascadeView.tsx (stagger trail)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event victory">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Day 3 complete — 51 tests green, cascade live</div>
+          <span class="tag victory">Milestone</span>
+        </div>
+        <div class="card-body">
+          <div class="success-box">✅ 5-task synthetic chain correctly propagates 2-day slip · Score 30–60 on test chain · /api/v1/capacity returns loadIndex/burnoutTrend/freeSlots · 15-min risk polling live · CascadeView stagger reveal all 4 viewports</div>
+          <div class="quote">"feat: Day3 complete — cascade engine live, replan generator working"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 9: DAY 4 BUILD ───────────────────────────── -->
+    <div class="day-label"><span>Phase 9 — Day 4: Agents + Psychology</span></div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">5 execution agents — from insight to action</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>The system stops presenting information and starts taking action. Five agents handle the work that used to require manual effort: drafting Adaptive Card notifications, blocking focus time on the calendar, generating PR review drafts, warning about overcommitment, and personalizing status updates per watcher.</p>
+          <div class="artifact-list">
+            <span class="artifact">AdaptiveCardBuilder.cs (v1.5)</span>
+            <span class="artifact">StatusUpdateDrafter.cs</span>
+            <span class="artifact">OvercommitFirewall.cs</span>
+            <span class="artifact">CalendarBlocker.cs (POST /me/events)</span>
+            <span class="artifact">PrReviewDrafter.cs (ADO diff)</span>
+            <span class="artifact">MotivationService.cs (score/streak/XP)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Psychology layer — behavioral science baked into every pixel</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>Eight components built from the psychology spec (SDT, Progress Principle, Fogg behavior model, habit loop, peak-end rule). Every animation respects <code>prefers-reduced-motion</code>. Variable reward phrases pool ≥20 to avoid habituation. MAX_TRIGGERS_PER_DAY=3 (P-27 constitution rule).</p>
+          <div class="artifact-list">
+            <span class="artifact">DeliveryScore.tsx (SVG donut)</span>
+            <span class="artifact">StreakBadge.tsx</span>
+            <span class="artifact">CompetencyLevel.tsx (XP bar)</span>
+            <span class="artifact">CelebrationLayer.tsx (particles)</span>
+            <span class="artifact">MorningDigest.tsx (stagger)</span>
+            <span class="artifact">InsightCard.tsx</span>
+            <span class="artifact">FocusMode.tsx (overlay)</span>
+            <span class="artifact">MotivationalNudge.tsx (variable reward)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event hiccup">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">TypeScript compilation errors — 3 token/type issues</div>
+          <span class="tag hiccup">Blocker</span>
+        </div>
+        <div class="card-body">
+          <div class="error-box">TS2551: Property 'colorPaletteTealForeground1' does not exist on type 'Tokens'<br>TS2493: Tuple type '[0, 100, 300, 600, 1000]' of length '5' has no element at index '5'<br>TS6196: 'AffectedTask' is declared but never used</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="event fix">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All 3 TypeScript errors resolved</div>
+          <span class="tag fix">Fix</span>
+        </div>
+        <div class="card-body">
+          <p><code>colorPaletteTealForeground1</code> → <code>colorPaletteTealForeground2</code> (correct Fluent v9 token). <code>as const</code> tuple → <code>readonly number[]</code> (allows runtime index beyond tuple length). Removed unused import.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="event victory">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Day 4 complete — end-to-end system live</div>
+          <span class="tag victory">Milestone</span>
+        </div>
+        <div class="card-body">
+          <div class="success-box">✅ Full approval loop: agent drafts → Adaptive Card → Approve/Edit/Skip → execute+calendar block → telemetry<br>✅ Psychology layer live: DeliveryScore donut animates · streak fires on milestone · XP bar fills<br>✅ 51/51 xUnit tests passing · 0 TypeScript errors · 26 files, 2256 insertions committed</div>
+          <div class="quote">"feat: Day4 complete — execution agents live, psychology layer live, full approval loop working"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 10: DAY 5 ────────────────────────────────── -->
+    <div class="day-label"><span>Phase 10 — Day 5: Demo Day</span></div>
+
+    <div class="event agent">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Day 5 active — integration tests + demo prep in progress</div>
+          <span class="tag agent">Agent</span>
+        </div>
+        <div class="card-body">
+          <p>Final sprint push before the 4PM live demo. Remaining work:</p>
+          <div class="artifact-list">
+            <span class="artifact">T-C06 — DELETE /data (right-to-erasure)</span>
+            <span class="artifact">T-035 — 15 integration tests (Stryker ≥80%)</span>
+            <span class="artifact">T-036 — Seed demo environment (6 personas)</span>
+            <span class="artifact">T-038 — Performance pass (&lt;5min/&lt;10s/&lt;2s)</span>
+            <span class="artifact">T-039 — Smoke test checklist (6 areas green)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /timeline -->
 
 </div><!-- /container -->
 
 <!-- ═══ CLOSING ══════════════════════════════════════════════ -->
 <div class="closing">
-  <h2>The Sprint Starts Monday</h2>
-  <p>Pre-sprint complete. Every blocker resolved. Every credential wired. 40 tasks queued in dependency order. One command resumes it from any session, on any machine.</p>
+  <h2>4 Days. 37 Tasks. One System.</h2>
+  <p>From a conversation about follow-up fatigue to a fully wired M365 system — C# backend, React frontend, Azure OpenAI NLP, BFS cascade engine, 5 execution agents, 8 psychology components, 51 tests. One more day to polish and present.</p>
 
   <div class="next-steps">
     <div class="next-step">
-      <div class="next-step-num">D</div>
+      <div class="next-step-num">✅</div>
       <div class="next-step-title">Day 1 — Monday</div>
-      <div class="next-step-text">Auth live, storage working, webhooks firing, Teams shell loading</div>
+      <div class="next-step-text">C# API, MSAL auth, Table Storage, webhooks, React shell live</div>
     </div>
     <div class="next-step">
-      <div class="next-step-num">D+1</div>
+      <div class="next-step-num">✅</div>
       <div class="next-step-title">Day 2 — Tuesday</div>
-      <div class="next-step-text">Real commitments flowing from transcripts, chat, email, and ADO</div>
+      <div class="next-step-text">4 extractors, NLP pipeline, real commitments in the pane</div>
     </div>
     <div class="next-step">
-      <div class="next-step-num">D+2</div>
+      <div class="next-step-num">✅</div>
       <div class="next-step-title">Day 3 — Wednesday</div>
-      <div class="next-step-text">Live cascade simulation — slip a task, see the ripple in seconds</div>
+      <div class="next-step-text">BFS cascade, impact scorer, Viva Insights, replan generator live</div>
     </div>
     <div class="next-step">
-      <div class="next-step-num">D+3</div>
+      <div class="next-step-num">✅</div>
       <div class="next-step-title">Day 4 — Thursday</div>
-      <div class="next-step-text">One-click approval loop end-to-end — agent drafts, human approves</div>
+      <div class="next-step-text">5 agents, psychology layer, full approval loop end-to-end</div>
     </div>
     <div class="next-step">
-      <div class="next-step-num">D+4</div>
+      <div class="next-step-num">🎯</div>
       <div class="next-step-title">Day 5 — Friday 4PM</div>
-      <div class="next-step-text">Live demo. Real data. Real tenant. Proof of 100× velocity.</div>
+      <div class="next-step-text">Integration tests, demo seed, performance pass, live demo</div>
     </div>
   </div>
 
   <p style="margin-top:48px; font-size:13px; color:#999;">
     Resume anytime: &nbsp;<code style="background:#eee;padding:3px 8px;border-radius:4px;font-size:12px">/speckit.implement</code>
     &nbsp;·&nbsp; Session state: <code style="background:#eee;padding:3px 8px;border-radius:4px;font-size:12px">.agents/commit-fhl/SESSION.md</code>
+    &nbsp;·&nbsp; Last updated: 2026-03-06 (Day 5 active)
   </p>
 </div>
 

@@ -60,6 +60,32 @@ P-29 requires ≤ 5-minute lag after any task completion. Staleness test:
 | `Commit_Build_Story.html` | Sprint stats (tasks done, tests passing, days complete) out of date | Update hero stats section |
 | `SESSION.md` | `lastCompletedTask` or `nextTask` stale | Update those fields |
 
+### Phase 2.5: Speckit Files — Full Project Agreement Verification
+
+All speckit files are authoritative governance documents. They must reflect the current
+project state. Sentinel is 100% accountable for the accuracy of these files.
+
+| File | What Sentinel Verifies |
+|------|------------------------|
+| `.agents/commit-fhl/spec.md` | Product definition hasn't drifted from what's been built; no promises made that don't exist in code |
+| `.agents/commit-fhl/plan.md` | Architecture plan still matches actual implementation; any divergences documented in decisions.md |
+| `.agents/commit-fhl/tasks.md` | Every `[x]` task has actually been built; every `[ ]` task is genuinely pending; no `[~]` tasks stale for >1 session |
+| `.agents/commit-fhl/decisions.md` | All resolved decisions marked ✅ Made; all pending decisions reflect genuine open questions, not already-answered ones |
+| `.agents/commit-fhl/SESSION.md` | `lastCompletedTask`, `nextTask`, `blockers` fields match actual repo state |
+| `.specify/memory/constitution.md` | Version is current; all active P-NN principles in effect |
+| `.specify/memory/ux-psychology.md` | Psychology spec reflects what's been implemented (not aspirational only) |
+| `.specify/memory/agent-inbox.md` | No open `[BLOCKING]` messages; no active messages addressed to agents that haven't been acknowledged |
+| `.specify/memory/tech-debt.md` | All in-code TODO/FIXME references have corresponding entries; no orphaned debt items |
+| `.specify/memory/sentinel-log.md` | Last run entry exists for current session; no outstanding violations |
+
+**Verification method for each file:**
+1. Read the file
+2. Cross-check it against actual repo state (files, tests, build output, deployment)
+3. If a decision is still marked "Pending" but has been answered → update to ✅ Made
+4. If a task is still `[ ]` but is actually done → update to `[x]`
+5. If SESSION.md `lastCompletedTask` is stale → update it
+6. Any other gap = violation to log in Phase 4
+
 ### Phase 3: Constitution Spot-Check (per-principle scan)
 
 Run these checks in order. Mark each pass ✅ or fail ❌:

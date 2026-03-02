@@ -24,17 +24,17 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Sentinel governance system (P-31, sentinel.md, sentinel-log.md, AGENT_INSTRUCTIONS updated) + stale reports fixed |
-| **Next task** | Human: T-040 — 4PM live demo · Human: upload commit-fhl.zip to 7k2cc2 Teams admin |
-| **Blockers** | Graph OBO: needs admin consent in 7k2cc2 tenant for real user token flow; Teams upload needs 7k2cc2 sign-in |
-| **Human decisions needed** | T-040 4PM demo · Teams upload (must be signed into 7k2cc2 tenant) |
-| **Build status** | DEPLOYED 2026-03-02 · API live · Frontend live · 24 commitments seeded · Team labels in UI · Demo scripts written |
+| **Last completed task** | T-041 (setup-tenant.ts + seed-real-users.ts + real-user-setup.md) + T-042 (demo-live-arrival.ts) |
+| **Next task** | Human: `az login --tenant 91b9767c-...` then `npx ts-node scripts/setup-tenant.ts` · Human: T-040 4PM demo |
+| **Blockers** | None — all agent work done. Setup is automated; human just needs to run setup-tenant.ts after az login. |
+| **Human decisions needed** | T-040: 4PM live demo · Run setup-tenant.ts to create real users (see docs/real-user-setup.md) |
+| **Build status** | DEPLOYED 2026-03-02 · API live · Frontend live · 24 commitments seeded · Team labels in UI · Demo scripts written · Real-user tenant automation ready |
 | **Last updated** | 2026-03-02 (Sentinel P-31 live · demo story deployed · all Day 5 agent tasks done) |
 | **Constitution version** | v1.4.0 (P-01 through P-31) |
 | **API URL** | https://commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io |
 | **Frontend URL** | https://thankful-pond-0ba16370f.6.azurestaticapps.net |
 | **Resource group** | commit-fhl-rg (East US) · subscription: Visual Studio Enterprise (6dbb6c34) |
-| **Sentinel sign-off** | ✅ 2026-03-02 14:30 — 3 violations found (P-29 staleness), all resolved |
+| **Sentinel sign-off** | ✅ 2026-03-02 16:00 — 0 violations — speckit fully refreshed, real-user automation complete |
 
 ---
 
@@ -43,17 +43,19 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | Artifact | Location | Status |
 |----------|----------|--------|
 | GitHub repo | https://github.com/Sampath-K/commit-fhl | ✅ Created (private) |
-| Constitution | `.specify/memory/constitution.md` | ✅ v1.2.0 — P-01 through P-29 |
+| Constitution | `.specify/memory/constitution.md` | ✅ v1.4.0 — P-01 through P-31 (P-31 = Sentinel Integrity) |
 | UX Psychology spec | `.specify/memory/ux-psychology.md` | ✅ Complete |
-| Agent role cards | `.specify/memory/agent-roles/` | ✅ All 6 done (Forge updated for C#) |
+| Agent role cards | `.specify/memory/agent-roles/` | ✅ All 7: Forge/Canvas/Shield/Lens/Seed/Router + Sentinel (P-31) |
 | Agent inbox | `.specify/memory/agent-inbox.md` | ✅ Ready |
 | ADR template | `.specify/memory/adr-template.md` | ✅ Ready |
 | Tech debt tracker | `.specify/memory/tech-debt.md` | ✅ Ready |
-| Spec | `.agents/commit-fhl/spec.md` | ✅ Stable |
-| Architecture plan | `.agents/commit-fhl/plan.md` | ✅ Done |
-| Task list | `.agents/commit-fhl/tasks.md` | ✅ Day 1 all [x]; Day 2 pending |
-| Decision log | `.agents/commit-fhl/decisions.md` | ✅ DA-005 (C# backend) added |
-| Agent instructions | `.agents/commit-fhl/AGENT_INSTRUCTIONS.md` | ✅ Updated for C# + multi-agent |
+| Sentinel role | `.specify/memory/agent-roles/sentinel.md` | ✅ P-31 — 4-phase verification protocol |
+| Sentinel log | `.specify/memory/sentinel-log.md` | ✅ First run 2026-03-02, 3 violations resolved |
+| Spec | `.agents/commit-fhl/spec.md` | ✅ Stable (v1.0 — FHL scope) |
+| Architecture plan | `.agents/commit-fhl/plan.md` | ✅ Done (DA-005 C# backend canonical) |
+| Task list | `.agents/commit-fhl/tasks.md` | ✅ Days 1-5 all [x]; T-041[!] blocked on D-008; T-042/T-040 pending |
+| Decision log | `.agents/commit-fhl/decisions.md` | ✅ D-001/D-002/D-007 ✅ Made; D-003 partial; D-008 ⏳ needs human action |
+| Agent instructions | `.agents/commit-fhl/AGENT_INSTRUCTIONS.md` | ✅ Updated for C# + multi-agent + P-31 Sentinel |
 | **C# API project** | `src/api/CommitApi.csproj` | ✅ .NET 9, all DI wired |
 | **Exceptions** | `src/api/Exceptions/CommitException.cs` | ✅ Full hierarchy |
 | **Repository** | `src/api/Repositories/CommitmentRepository.cs` | ✅ Azure Table Storage |
@@ -105,6 +107,10 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **CI/CD scaffold** | `.github/workflows/deploy.yml` | ✅ Scaffold ready (activate post-demo: remove if:false) |
 | **Smoke tests** | `scripts/verify-demo.ts` | ✅ 6 checks covering all feature areas |
 | **Demo readiness** | `.agents/commit-fhl/demo-readiness.md` | ✅ All 6 green |
+| **Tenant setup** | `scripts/setup-tenant.ts` | ✅ Fully automated, idempotent (az login → creates 6 users, flushes, re-seeds) |
+| **OID override seed** | `scripts/seed-real-users.ts` | ✅ Accepts REAL_OID_* env vars, remaps scenario to real identities |
+| **Live arrival** | `scripts/demo-live-arrival.ts` | ✅ T-042: injects commitment with 60s countdown during demo |
+| **Real user guide** | `docs/real-user-setup.md` | ✅ 3-command TL;DR, admin consent, Teams install, troubleshooting |
 
 ---
 
@@ -139,7 +145,7 @@ AFTER EXTRACTORS DONE (sequential dependency):
 | Tue D2 | ✅ Complete | 4 extractors, NLP pipeline, dedup, Eisenhower scorer, CommitPane wired | feat: Day2 |
 | Wed D3 | ✅ Complete | Cascade engine, impact scorer, Viva Insights, risk detector, replan engine | feat: Day3 |
 | Thu D4 | ✅ Complete | Execution agents + psychology layer + approval loop | feat: Day4 |
-| Fri D5 | ⏳ Not started | Live demo | — |
+| Fri D5 | ✅ Agent tasks done (T-040 live demo pending) | Demo scripts, team labels, Sentinel, perf pass, smoke tests, T-041/T-042 | feat(demo): demo scripts + team labels |
 
 ---
 

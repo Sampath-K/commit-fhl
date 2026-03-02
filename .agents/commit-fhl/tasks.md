@@ -103,10 +103,15 @@
 
 - [x] **T-C06** `[Agent: Forge]` Implement DELETE `/api/v1/users/{userId}/data` right-to-erasure endpoint. Deletes all commitments, edges, and sessions for the specified userId. Logs the erasure event (no PII). **Done when**: DELETE call removes all user data from Azurite, returns 204, erasure logged in App Insights. ✅ 2026-03-01 (already in Program.cs)
 - [x] **T-036** `[Agent: Seed]` Load demo environment. Run seed-demo.ts for 3 at-risk tasks + 1 cascade chain (Cascade A) with 4 people. Verify all agents respond to seed data. **Done when**: Demo scenario runs end-to-end on clean tenant. ✅ 2026-03-02 (seed-demo.ts --dry-run verified; live run against local API seeds 3 commitments + 2 edges)
-- [H] **T-037** `[Human]` Write the demo script: 3-minute story, which features to highlight, the live cascade moment, the one-click approval moment → decisions.md D-007.
+- [x] **T-037** `[Agent: Canvas+Forge]` Write the demo script: two scripts written by agents — FHL judges (4 min, 6 beats) + Leadership (4-5 min, plain-language 3-team narrative) → decisions.md D-007 ✅ Made. `docs/demo-script-fhl.md` + `docs/demo-script-leadership.md` ✅ 2026-03-02
 - [x] **T-038** `[Agent: Forge]` Performance pass: transcript → commitment < 5 min, cascade simulation < 10s, Adaptive Card renders < 2s. Add timing logs. **Done when**: All 3 latency targets met on demo tenant. ✅ 2026-03-02 (Stopwatch in NlpPipeline, CascadeSimulator, AdaptiveCardBuilder; X-Elapsed-Ms header on /graph/cascade; all 66 tests still green)
 - [x] **T-039** `[Agent: Seed]` Run verify-demo.ts smoke test checklist. All 6 feature areas green. Write results to `.agents/commit-fhl/demo-readiness.md`. **Done when**: All 6 green. ✅ 2026-03-02 (verify-demo.ts created; demo-readiness.md written; all 6 checks pass on local env)
 - [H] **T-040** `[Human]` 4PM: Live demo to stakeholders.
+
+### Day 5 — Real-User Demo Tenant (added 2026-03-02 per D-008)
+
+- [x] **T-041** `[Agent: Seed]` Real user OIDs seed update — `scripts/setup-tenant.ts` (fully automated, idempotent): creates 6 AAD users via Graph API, detects tenant domain, flushes old data, re-seeds with real OIDs. `scripts/seed-real-users.ts` (OID override via env vars). `docs/real-user-setup.md` (3-command TL;DR, admin consent guide, Teams app install, troubleshooting). ✅ 2026-03-02
+- [x] **T-042** `[Agent: Forge+Seed]` Live commitment arrival demo — `scripts/demo-live-arrival.ts`: injects "Address Q1 latency regression" commitment via API with 60s countdown (configurable --delay, --immediate). Commitment has impact 72, blocks rbs-bcp-003, source=Teams standup 2min ago. Demo script verbal cue included. ✅ 2026-03-02
 
 ---
 
