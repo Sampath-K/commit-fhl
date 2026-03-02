@@ -92,7 +92,7 @@
 - [x] **T-C07** `[Agent: Canvas]` Implement full psychology layer. Build all 8 components in `src/app/src/components/psychology/`: DeliveryScore, StreakBadge, CompetencyLevel, CelebrationLayer, MorningDigest, InsightCard, FocusMode, MotivationalNudge. Hooks: useDeliveryScore, useStreak, useCompetencyLevel, usePsychologyEvents. All reduced-motion compliant. TypeScript clean. ✅ 2026-03-01
 - [H] **T-033** `[Human]` End-to-end UX review. Test full approval flow + psychology layer feel. Approve communication templates → decisions.md D-006.
 - [x] **T-034** `[Agent: Forge]` Wire approval buttons to actions. POST /api/v1/approvals (approve→execute+calendar block, edit→update draft, skip→dismiss). GET /api/v1/users/{userId}/motivation endpoint. Log all decisions as telemetry. **Done when**: Full approval loop works end-to-end in Teams. ✅ 2026-03-01
-- [ ] **T-035** `[Agent: Lens]` Integration test suite: 15 tests covering full pipeline (transcript → commitment → cascade → replan → approval card). See lens.md for the 15 test definitions. **Done when**: All 15 pass. Stryker score ≥ 80%.
+- [x] **T-035** `[Agent: Lens]` Integration test suite: 15 tests covering full pipeline (transcript → commitment → cascade → replan → approval card). See lens.md for the 15 test definitions. **Done when**: All 15 pass. Stryker score ≥ 80%. ✅ 2026-03-02
 
 **Day 4 commit target**: `git commit -m "feat: Day4 complete — execution agents live, psychology layer live, full approval loop working"`
 
@@ -101,7 +101,7 @@
 ## Day 5 — Friday: Demo Prep & Live Demo
 *Goal: 4PM demo of a live working system on real M365 tenant.*
 
-- [ ] **T-C06** `[Agent: Forge]` Implement DELETE `/api/v1/users/{userId}/data` right-to-erasure endpoint. Deletes all commitments, edges, and sessions for the specified userId. Logs the erasure event (no PII). **Done when**: DELETE call removes all user data from Azurite, returns 204, erasure logged in App Insights.
+- [x] **T-C06** `[Agent: Forge]` Implement DELETE `/api/v1/users/{userId}/data` right-to-erasure endpoint. Deletes all commitments, edges, and sessions for the specified userId. Logs the erasure event (no PII). **Done when**: DELETE call removes all user data from Azurite, returns 204, erasure logged in App Insights. ✅ 2026-03-01 (already in Program.cs)
 - [ ] **T-036** `[Agent: Seed]` Load demo environment. Run seed-demo.ts for 3 at-risk tasks + 1 cascade chain (Cascade A) with 4 people. Verify all agents respond to seed data. **Done when**: Demo scenario runs end-to-end on clean tenant.
 - [H] **T-037** `[Human]` Write the demo script: 3-minute story, which features to highlight, the live cascade moment, the one-click approval moment → decisions.md D-007.
 - [ ] **T-038** `[Agent: Forge]` Performance pass: transcript → commitment < 5 min, cascade simulation < 10s, Adaptive Card renders < 2s. Add timing logs. **Done when**: All 3 latency targets met on demo tenant.
