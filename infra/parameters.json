@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "tenantId": {
+      "value": "91b9767c-6b0a-4b0b-bd4d-e08a6383426c"
+    },
+    "clientId": {
+      "value": "07b0afff-85b6-4be1-98ba-d26d566bd14a"
+    },
+    "clientSecret": {
+      "value": "__FILL_AT_DEPLOY__"
+    },
+    "azureOpenAiEndpoint": {
+      "value": ""
+    },
+    "azureOpenAiKey": {
+      "value": ""
+    },
+    "imageTag": {
+      "value": "v1"
+    }
+  }
+}
