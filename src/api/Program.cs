@@ -205,6 +205,47 @@ api.MapGet("/commitments/{userId}", async (string userId, ICommitmentRepository 
 .WithName("ListCommitments")
 .WithOpenApi();
 
+// POST /api/v1/commitments — upsert a single commitment (used by seed script + direct creation)
+api.MapPost("/commitments", async (HttpRequest req, ICommitmentRepository repo) =>
+{
+    using var reader = new System.IO.StreamReader(req.Body);
+    var body = await reader.ReadToEndAsync();
+    var dto  = System.Text.Json.JsonSerializer.Deserialize<CommitmentUpsertDto>(body,
+        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        ?? throw new ValidationException("Invalid commitment payload");
+
+    if (string.IsNullOrWhiteSpace(dto.Id) || string.IsNullOrWhiteSpace(dto.Owner))
+        throw new ValidationException("id and owner are required");
+
+    var entity = new CommitApi.Entities.CommitmentEntity
+    {
+        PartitionKey          = dto.Owner,
+        RowKey                = dto.Id,
+        Title                 = dto.Title ?? string.Empty,
+        Owner                 = dto.Owner,
+        WatchersJson          = System.Text.Json.JsonSerializer.Serialize(dto.Watchers ?? []),
+        SourceType            = dto.Source?.Type ?? "meeting",
+        SourceUrl             = dto.Source?.Url ?? string.Empty,
+        SourceTimestamp       = DateTimeOffset.TryParse(dto.Source?.Timestamp, out var st) ? st : DateTimeOffset.UtcNow,
+        SourceId              = dto.Source?.SourceId,
+        CommittedAt           = DateTimeOffset.TryParse(dto.CommittedAt, out var ca) ? ca : DateTimeOffset.UtcNow,
+        DueAt                 = DateTimeOffset.TryParse(dto.DueAt, out var da) ? da : (DateTimeOffset?)null,
+        Status                = dto.Status ?? "pending",
+        Priority              = dto.Priority ?? "not-urgent-not-important",
+        BlockedByJson         = System.Text.Json.JsonSerializer.Serialize(dto.BlockedBy ?? []),
+        BlocksJson            = System.Text.Json.JsonSerializer.Serialize(dto.Blocks ?? []),
+        ImpactScore           = dto.ImpactScore,
+        BurnoutContribution   = dto.BurnoutContribution,
+        LastActivity          = DateTimeOffset.TryParse(dto.LastActivity, out var la) ? la : (DateTimeOffset?)null,
+        OwnerDeliveryScoreAtCreation = dto.OwnerDeliveryScoreAtCreation,
+    };
+
+    await repo.UpsertAsync(entity);
+    return Results.Ok(new { success = true, id = dto.Id, requestId = Guid.NewGuid() });
+})
+.WithName("UpsertCommitment")
+.WithOpenApi();
+
 // DELETE /api/v1/users/{userId}/data — right-to-erasure (P-05, T-C06)
 api.MapDelete("/users/{userId}/data", async (string userId, ICommitmentRepository repo,
     ISubscriptionManager subs, IAppInsightsClient insights, HttpContext http) =>

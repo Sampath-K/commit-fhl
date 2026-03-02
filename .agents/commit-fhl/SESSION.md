@@ -24,12 +24,12 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Full Azure deployment (commit-fhl-rg, East US) — API + SWA live |
-| **Next task** | Human: upload commit-fhl.zip to 7k2cc2 Teams admin · run seed script for demo data |
-| **Blockers** | Graph OBO: needs admin consent in 7k2cc2 tenant for real user token flow |
-| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo |
-| **Build status** | DEPLOYED 2026-03-02 · API live · Frontend live · Teams zip ready · all 6 checks green |
-| **Last updated** | 2026-03-02 (Full Azure deployment complete) |
+| **Last completed task** | Demo data seeded — 24 commitments, 26 edges live in Azure Table Storage (commit-api:v2) |
+| **Next task** | Human: upload commit-fhl.zip to 7k2cc2 Teams admin (sign into 7k2cc2 tenant first) |
+| **Blockers** | Graph OBO: needs admin consent in 7k2cc2 tenant for real user token flow; Teams upload needs 7k2cc2 sign-in |
+| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo · Teams upload (must be signed into 7k2cc2 tenant) |
+| **Build status** | DEPLOYED 2026-03-02 · API v2 live · Frontend live · 24 commitments seeded · Teams zip ready |
+| **Last updated** | 2026-03-02 (Demo data seeded — Reschedule BizChat Skill scenario, all 24 commitments) |
 | **Constitution version** | v1.3.0 (P-01 through P-30) |
 | **API URL** | https://commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io |
 | **Frontend URL** | https://thankful-pond-0ba16370f.6.azurestaticapps.net |
