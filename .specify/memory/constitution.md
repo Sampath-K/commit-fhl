@@ -1,7 +1,7 @@
 # Commit FHL — Project Constitution
-> **Version**: 1.2.0
+> **Version**: 1.3.0
 > **Status**: Ratified
-> **Last amended**: 2026-03-01
+> **Last amended**: 2026-03-02
 > All agents must read and follow every principle. Amendments require human approval + version bump.
 
 ---
@@ -13,6 +13,7 @@
 | 1.0.0 | 2026-03-01 | Initial constitution — P-01 through P-17 |
 | 1.1.0 | 2026-03-01 | Added P-18 through P-27 (team structure, engineering standards, psychology layer) |
 | 1.2.0 | 2026-03-01 | Backend changed to C# ASP.NET Core Minimal API (.NET 9) + xUnit; added P-28 (C# backend conventions) and P-29 (live reporting cadence); updated P-20, P-21, P-24 |
+| 1.3.0 | 2026-03-02 | Added P-30 (deployment cadence — deployed to tenant is the definition of done) |
 
 ---
 
@@ -565,6 +566,22 @@ The build story, sprint reports, and dashboard MUST always reflect the last 5 mi
 ```
 
 **Non-negotiable**: An agent session MUST NOT end without updating SESSION.md and the active day report. If you are about to run out of context, update the reports FIRST before doing any other cleanup.
+
+---
+
+### P-30 — Deployment Cadence
+
+After every scenario-completing feature (a new end-to-end user flow verified in tests),
+the system MUST be deployed to the target environment. "Runs on a laptop" is not done.
+Done means users can access it. Deployment is part of the Definition of Done for all
+scenario-level tasks. The target environment for Commit FHL is the E5 tenant
+(7k2cc2.onmicrosoft.com) on Azure Container Apps + Static Web Apps.
+
+- Deploy after: any task that completes a full user-visible scenario
+- Target: `commit-fhl-rg` in Azure, East US region
+- API: Azure Container Apps (consumption tier), port 8080
+- Frontend: Azure Static Web Apps (Free tier)
+- Teams: published to 7k2cc2 org catalog via manifest zip upload
 
 ---
 
