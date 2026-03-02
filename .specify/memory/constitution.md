@@ -14,6 +14,7 @@
 | 1.1.0 | 2026-03-01 | Added P-18 through P-27 (team structure, engineering standards, psychology layer) |
 | 1.2.0 | 2026-03-01 | Backend changed to C# ASP.NET Core Minimal API (.NET 9) + xUnit; added P-28 (C# backend conventions) and P-29 (live reporting cadence); updated P-20, P-21, P-24 |
 | 1.3.0 | 2026-03-02 | Added P-30 (deployment cadence — deployed to tenant is the definition of done) |
+| 1.4.0 | 2026-03-02 | Added P-31 (Sentinel integrity protocol — non-skippable end-of-session verification) |
 
 ---
 
@@ -582,6 +583,32 @@ scenario-level tasks. The target environment for Commit FHL is the E5 tenant
 - API: Azure Container Apps (consumption tier), port 8080
 - Frontend: Azure Static Web Apps (Free tier)
 - Teams: published to 7k2cc2 org catalog via manifest zip upload
+
+---
+
+### P-31 — Sentinel Integrity Protocol
+
+An independent Sentinel verification MUST be run at the end of every agent session and at the
+start of any session where the previous session did not run Sentinel.
+
+**Role definition**: `.specify/memory/agent-roles/sentinel.md`
+**Violation log**: `.specify/memory/sentinel-log.md`
+
+**Non-negotiable requirements:**
+
+1. SESSION.md must have a `Sentinel sign-off` field updated by Sentinel before session close
+2. No session is complete without Sentinel sign-off — Router cannot approve session close
+3. Sentinel findings override Router's session-close approval
+4. Sentinel MUST fix violations it finds before signing off (or create blocking tasks if fix requires human input)
+5. Stale live reports (P-29 violations) are CRITICAL severity — fix immediately, before all other work
+
+**Sentinel authority:**
+- Sentinel may add blocking tasks to `tasks.md` without Router approval
+- Sentinel may update any governance document (SESSION.md, reports, tasks.md, decisions.md)
+- Sentinel may escalate to human by adding `[BLOCKING]` items to `decisions.md`
+
+**This is a high-stakes project.** A stale report read by a judge or VP during demo is a defect,
+not an oversight. Sentinel exists to ensure that trust in these documents is earned, not assumed.
 
 ---
 

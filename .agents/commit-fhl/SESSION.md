@@ -19,21 +19,22 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 5 — Demo Day (DEPLOYED ✅) |
-| **Phase** | LIVE on Azure · ready for demo · T-037/T-040 human tasks remaining |
+| **Sprint Day** | Day 5 — Demo Ready (T-040 pending) |
+| **Phase** | LIVE on Azure · demo scripts written · team labels in UI · Sentinel governance active |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Demo data seeded — 24 commitments, 26 edges live in Azure Table Storage (commit-api:v2) |
-| **Next task** | Human: upload commit-fhl.zip to 7k2cc2 Teams admin (sign into 7k2cc2 tenant first) |
+| **Last completed task** | Sentinel governance system (P-31, sentinel.md, sentinel-log.md, AGENT_INSTRUCTIONS updated) + stale reports fixed |
+| **Next task** | Human: T-040 — 4PM live demo · Human: upload commit-fhl.zip to 7k2cc2 Teams admin |
 | **Blockers** | Graph OBO: needs admin consent in 7k2cc2 tenant for real user token flow; Teams upload needs 7k2cc2 sign-in |
-| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo · Teams upload (must be signed into 7k2cc2 tenant) |
-| **Build status** | DEPLOYED 2026-03-02 · API v2 live · Frontend live · 24 commitments seeded · Teams zip ready |
-| **Last updated** | 2026-03-02 (Demo data seeded — Reschedule BizChat Skill scenario, all 24 commitments) |
-| **Constitution version** | v1.3.0 (P-01 through P-30) |
+| **Human decisions needed** | T-040 4PM demo · Teams upload (must be signed into 7k2cc2 tenant) |
+| **Build status** | DEPLOYED 2026-03-02 · API live · Frontend live · 24 commitments seeded · Team labels in UI · Demo scripts written |
+| **Last updated** | 2026-03-02 (Sentinel P-31 live · demo story deployed · all Day 5 agent tasks done) |
+| **Constitution version** | v1.4.0 (P-01 through P-31) |
 | **API URL** | https://commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io |
 | **Frontend URL** | https://thankful-pond-0ba16370f.6.azurestaticapps.net |
 | **Resource group** | commit-fhl-rg (East US) · subscription: Visual Studio Enterprise (6dbb6c34) |
+| **Sentinel sign-off** | ✅ 2026-03-02 14:30 — 3 violations found (P-29 staleness), all resolved |
 
 ---
 
@@ -93,7 +94,9 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Psychology components** | `src/app/src/components/psychology/` | ✅ 8 components: DeliveryScore, StreakBadge, CompetencyLevel, CelebrationLayer, MorningDigest, InsightCard, FocusMode, MotivationalNudge |
 | **CascadeView** | `src/app/src/components/core/CascadeView.tsx` | ✅ Stagger reveal, at-risk highlights, replan panel |
 | **ApprovalCard** | `src/app/src/components/core/ApprovalCard.tsx` | ✅ Approve/Edit/Skip, fires /api/v1/approvals |
-| **Constitution** | `.specify/memory/constitution.md` | ✅ v1.3.0 — P-01 through P-30 |
+| **Constitution** | `.specify/memory/constitution.md` | ✅ v1.4.0 — P-01 through P-31 |
+| **Sentinel role** | `.specify/memory/agent-roles/sentinel.md` | ✅ P-31 — full verification protocol |
+| **Sentinel log** | `.specify/memory/sentinel-log.md` | ✅ First run complete, 3 violations resolved |
 | **Timing logs** | `NlpPipeline.cs`, `CascadeSimulator.cs`, `AdaptiveCardBuilder.cs` | ✅ Stopwatch on all 3 hot paths |
 | **X-Elapsed-Ms** | `Program.cs` /graph/cascade route | ✅ Response header for browser/curl verification |
 | **Dockerfile** | `src/api/Dockerfile` | ✅ .NET 10 multi-stage, non-root user |

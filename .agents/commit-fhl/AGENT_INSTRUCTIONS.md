@@ -35,15 +35,20 @@ or make implementation decisions that are not listed as open decisions in `decis
 
 ```
 1. Read:  .agents/commit-fhl/SESSION.md        ← current state
-2. Read:  .agents/commit-fhl/decisions.md      ← open decisions needing human input
-3. Read:  .agents/commit-fhl/tasks.md          ← find next [ ] task
-4. Read:  .specify/memory/constitution.md      ← all engineering principles
-5. Read:  your agent role card in .specify/memory/agent-roles/
-6. Check: .specify/memory/agent-inbox.md       ← any messages for you?
-7. Check: is the next task tagged [Human]?
+2. Check: SESSION.md "Sentinel sign-off" field ← did LAST session complete Sentinel?
+          NO → Run Sentinel (sentinel.md) BEFORE any new work. Fix violations first.
+3. Read:  .agents/commit-fhl/decisions.md      ← open decisions needing human input
+4. Read:  .agents/commit-fhl/tasks.md          ← find next [ ] task
+5. Read:  .specify/memory/constitution.md      ← all engineering principles (now P-01 to P-31)
+6. Read:  your agent role card in .specify/memory/agent-roles/
+7. Check: .specify/memory/agent-inbox.md       ← any messages for you?
+8. Check: is the next task tagged [Human]?
           YES → surface the question to the human, then work on the next [Agent] task
           NO  → start building immediately
 ```
+
+**CRITICAL**: If SESSION.md has no `Sentinel sign-off` field, or the sign-off is `❌ INCOMPLETE`,
+the previous session did not complete correctly. Run Sentinel NOW before any other action.
 
 ---
 
@@ -214,3 +219,9 @@ Before stopping (context full or session ending):
 - [ ] All changes committed and pushed: `git add -A && git commit -m "..." && git push`
 - [ ] `decisions.md` updated with any new decisions made or pending
 - [ ] `agent-inbox.md` checked — no open blocking messages
+- [ ] **⚠️ SENTINEL RUN** — Run Sentinel (`.specify/memory/agent-roles/sentinel.md`) verification
+- [ ] **⚠️ SENTINEL SIGN-OFF** — Update `SESSION.md` with `Sentinel sign-off` field
+
+**The session is NOT complete until Sentinel signs off. This is non-negotiable (P-31).**
+If you are running out of context: update SESSION.md and the reports FIRST, then run Sentinel.
+Sentinel is the last item because it verifies everything else is done. Never skip it.
