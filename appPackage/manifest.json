@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "00000000-0000-0000-0000-c0mm1tfh1v01",
+  "developer": {
+    "name": "7k2cc2 Demo",
+    "websiteUrl": "https://commit-app.placeholder.azurestaticapps.net",
+    "privacyUrl": "https://commit-app.placeholder.azurestaticapps.net/privacy",
+    "termsOfUseUrl": "https://commit-app.placeholder.azurestaticapps.net/terms"
+  },
+  "name": {
+    "short": "Commit",
+    "full": "Commit — AI Commitment Tracker"
+  },
+  "description": {
+    "short": "Track commitments from meetings, email & ADO",
+    "full": "Commit captures commitments from your meetings, chats, email, and ADO PRs. It builds a live dependency graph, simulates cascades before they happen, and drafts replans with one-click approval."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#0078D4",
+  "staticTabs": [
+    {
+      "entityId": "commitPane",
+      "name": "Commit",
+      "contentUrl": "https://commit-app.placeholder.azurestaticapps.net/",
+      "websiteUrl": "https://commit-app.placeholder.azurestaticapps.net/",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": [
+    "commit-api.placeholder.azurecontainerapps.io",
+    "commit-app.placeholder.azurestaticapps.net"
+  ]
+}
