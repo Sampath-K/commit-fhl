@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Azure.AI.OpenAI;
@@ -46,6 +47,7 @@ public sealed class NlpPipeline : INlpPipeline
     {
         if (_aiClient is null) return [];
 
+        var sw     = Stopwatch.StartNew();
         var groups = chunks.GroupBy(c => c.MeetingId);
         var results = new List<RawCommitment>();
 
@@ -57,6 +59,10 @@ public sealed class NlpPipeline : INlpPipeline
             var extracted = await CallOpenAiAsync(transcript, CommitmentSourceType.Transcript, ct);
             results.AddRange(extracted.Where(c => c.Confidence >= MinConfidence));
         }
+
+        _logger.LogInformation(
+            "NLP pipeline: {Count} chunks in {Ms}ms (target <300000ms)",
+            results.Count, sw.ElapsedMilliseconds);
 
         return results;
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using CommitApi.Entities;
 using CommitApi.Exceptions;
@@ -31,6 +32,8 @@ public class CascadeSimulator : ICascadeSimulator
     public async Task<CascadeResult> SimulateAsync(
         string rootTaskId, string userId, int slipDays, CancellationToken ct = default)
     {
+        var sw = Stopwatch.StartNew();
+
         // Pre-fetch all user commitments once (used for calendar pressure)
         var allCommitments = await _repo.ListByOwnerAsync(userId, ct: ct);
         var byId           = allCommitments.ToDictionary(e => e.RowKey, StringComparer.OrdinalIgnoreCase);
@@ -95,8 +98,8 @@ public class CascadeSimulator : ICascadeSimulator
         var totalPressure = affectedList.Sum(t => t.CalendarPressure);
 
         _log.LogInformation(
-            "Cascade from {Root}: {Count} tasks affected, total pressure {Pressure:F2}",
-            rootTaskId, affectedList.Count, totalPressure);
+            "Cascade from {Root}: {Count} tasks affected, total pressure {Pressure:F2}, elapsed {Ms}ms (target <10000ms)",
+            rootTaskId, affectedList.Count, totalPressure, sw.ElapsedMilliseconds);
 
         return new CascadeResult(rootTaskId, slipDays, affectedList, totalPressure);
     }

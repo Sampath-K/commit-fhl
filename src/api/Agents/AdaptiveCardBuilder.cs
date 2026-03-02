@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using CommitApi.Models.Agents;
 
@@ -7,14 +8,23 @@ namespace CommitApi.Agents;
 /// Builds Adaptive Card JSON payloads for agent drafts.
 /// Cards render in Teams desktop, web, and mobile (Adaptive Cards v1.5).
 /// </summary>
-public static class AdaptiveCardBuilder
+public class AdaptiveCardBuilder
 {
+    private readonly ILogger<AdaptiveCardBuilder> _logger;
+
+    public AdaptiveCardBuilder(ILogger<AdaptiveCardBuilder> logger)
+    {
+        _logger = logger;
+    }
+
     /// <summary>
     /// Creates an Adaptive Card for a pending agent draft.
     /// Includes a context strip, draft content, and Approve / Edit / Skip buttons.
     /// </summary>
-    public static string BuildDraftCard(AgentDraft draft, string commitmentId)
+    public string BuildDraftCard(AgentDraft draft, string commitmentId)
     {
+        var sw = Stopwatch.StartNew();
+
         var actionTypeLabel = draft.ActionType switch
         {
             "send-message"          => "📨 Teams Message",
@@ -136,7 +146,11 @@ public static class AdaptiveCardBuilder
             }
         };
 
-        return JsonSerializer.Serialize(card, new JsonSerializerOptions { WriteIndented = false });
+        var result = JsonSerializer.Serialize(card, new JsonSerializerOptions { WriteIndented = false });
+
+        _logger.LogInformation("Adaptive card built in {Ms}ms (target <2000ms)", sw.ElapsedMilliseconds);
+
+        return result;
     }
 
     /// <summary>

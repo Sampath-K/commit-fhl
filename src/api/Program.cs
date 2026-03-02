@@ -85,6 +85,7 @@ builder.Services.AddSingleton<IReplanGenerator, ReplanGenerator>();
 builder.Services.AddHostedService<RiskDetector>();
 
 // ─── Execution Agents (T-028, T-029, T-030, T-031, T-032) ────────────────────
+builder.Services.AddSingleton<AdaptiveCardBuilder>();
 builder.Services.AddSingleton<IStatusUpdateDrafter, StatusUpdateDrafter>();
 builder.Services.AddSingleton<IOvercommitFirewall,  OvercommitFirewall>();
 builder.Services.AddSingleton<ICalendarBlocker,     CalendarBlocker>();
@@ -383,6 +384,7 @@ api.MapPost("/graph/cascade", async (
     ICommitmentRepository repo,
     IAppInsightsClient insights) =>
 {
+    var cascadeSw  = System.Diagnostics.Stopwatch.StartNew();
     var rootTaskId = http.Request.Query["rootTaskId"].ToString();
     var userId     = http.Request.Query["userId"].ToString();
     if (string.IsNullOrEmpty(rootTaskId) || string.IsNullOrEmpty(userId))
@@ -412,6 +414,8 @@ api.MapPost("/graph/cascade", async (
             ["score"]    = impactScore.ToString(),
             ["slipDays"] = slipDays.ToString()
         });
+
+    http.Response.Headers["X-Elapsed-Ms"] = cascadeSw.ElapsedMilliseconds.ToString();
 
     return Results.Ok(new
     {
