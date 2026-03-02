@@ -19,17 +19,17 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 4 — Thursday (complete) |
-| **Phase** | Execution Agents + Psychology Layer — Day 4 complete ✅ |
+| **Sprint Day** | Day 5 — Demo Day (active) |
+| **Phase** | T-035 done · T-036/T-038/T-039 remaining · demo at 4PM |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | Day 4 complete — T-027–T-032, T-C07, T-034 all done |
-| **Next task** | T-035 (Lens: integration test suite) → T-036 (Seed: load demo env) → T-038 (Forge: performance pass) |
+| **Last completed task** | T-035 — 15 integration tests (66/66 total green) · commit 93a2267 |
+| **Next task** | T-036 (Seed: load demo env) → T-038 (Forge: perf pass) → T-039 (Seed: smoke test) |
 | **Blockers** | D-003 — Azure OpenAI endpoint/key needed before T-011 (NLP pipeline). Add to `.env` |
-| **Human decisions needed** | T-025 (Human review of cascade on 2 real at-risk tasks → D-005) |
-| **Build status** | Day 3 complete — cascade engine, impact scorer, Viva Insights, risk detector, replan engine all live |
-| **Last updated** | 2026-03-01 (Day 4 complete) |
+| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo |
+| **Build status** | All 4 days complete 2026-03-01 (51 min) · 39 tasks · 66/66 tests · ~9500 LOC |
+| **Last updated** | 2026-03-02 (Day 5 active — T-C06 ✅, T-035 ✅) |
 | **Constitution version** | v1.2.0 (P-01 through P-29) |
 
 ---
