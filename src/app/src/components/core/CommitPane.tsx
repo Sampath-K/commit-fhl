@@ -15,6 +15,7 @@ import {
 import { useSpring, animated } from '@react-spring/web';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS } from '../../config/psychology.config';
+import { TEAM_BY_USER } from '../../config/teams.config';
 import type { CommitmentRecord, EisenhowerQuadrant } from '../../types/api';
 
 const useStyles = makeStyles({
@@ -102,6 +103,7 @@ const SOURCE_ICONS: Record<string, string> = {
 interface CommitPaneProps {
   commitments: CommitmentRecord[];
   isLoading: boolean;
+  currentUserId?: string;
   onCommitmentClick?: (commitment: CommitmentRecord) => void;
 }
 
@@ -123,15 +125,18 @@ function CommitCard({
   commitment,
   onClick,
   delay,
+  currentUserId,
 }: {
   commitment: CommitmentRecord;
   onClick?: () => void;
   delay: number;
+  currentUserId?: string;
 }): JSX.Element {
   const { t } = useTranslation();
   const styles = useStyles();
   const reducedMotion = useReducedMotion();
   const isAtRisk = commitment.impactScore > 40 && commitment.status === 'pending';
+  const ownerTeam = TEAM_BY_USER[commitment.owner];
 
   const spring = useSpring({
     config: SPRING_CONFIGS.smooth,
@@ -167,6 +172,15 @@ function CommitCard({
                     {t('commitPane.card.impactScore')}: {commitment.impactScore}
                   </Badge>
                 </Tooltip>
+              )}
+              {/* Team affiliation pill — shown for cross-team owners only */}
+              {ownerTeam && commitment.owner !== currentUserId && (
+                <Badge
+                  appearance="tint"
+                  style={{ backgroundColor: ownerTeam.color + '22', color: ownerTeam.color }}
+                >
+                  {ownerTeam.label}
+                </Badge>
               )}
             </div>
           }
@@ -213,7 +227,7 @@ function CommitCard({
  * All strings from react-i18next (P-17). All colors from Fluent tokens (P-15).
  * Animations from @react-spring/web with reduced-motion support (P-27).
  */
-export function CommitPane({ commitments, isLoading, onCommitmentClick }: CommitPaneProps): JSX.Element {
+export function CommitPane({ commitments, isLoading, currentUserId, onCommitmentClick }: CommitPaneProps): JSX.Element {
   const { t } = useTranslation();
   const styles = useStyles();
 
@@ -283,6 +297,7 @@ export function CommitPane({ commitments, isLoading, onCommitmentClick }: Commit
                 commitment={c}
                 onClick={() => onCommitmentClick?.(c)}
                 delay={idx * 40}
+                currentUserId={currentUserId}
               />
             ))}
           </div>

@@ -16,6 +16,7 @@ import { animated, useSpring, useTrail } from '@react-spring/web';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS, STAGGER_DELAYS } from '../../config/psychology.config';
 import { API_BASE } from '../../config/api.config';
+import { teamFromTaskId } from '../../config/teams.config';
 import type { CascadeApiResponse, CommitmentRecord, ReplanApiOption } from '../../types/api';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -225,29 +226,41 @@ export function CascadeView({
       {error && <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error}</Text>}
 
       {/* ── Cascade chain (stagger-revealed) ── */}
-      {chainItems.map((task, i) => (
-        <animated.div
-          key={task.taskId}
-          style={reduced ? {} : trail[i]}
-          className={`${styles.chainItem} ${task.cumulativeSlipDays > 0 ? styles.atRisk : ''}`}>
-          <Text size={300} weight={task.cumulativeSlipDays > 0 ? 'semibold' : 'regular'}>
-            {task.title}
-          </Text>
-          {task.originalEta && (
-            <div className={styles.etaRow}>
-              <Text size={100} className={styles.strikethrough}>
-                {new Date(task.originalEta).toLocaleDateString()}
+      {chainItems.map((task, i) => {
+        const team = teamFromTaskId(task.taskId);
+        return (
+          <animated.div
+            key={task.taskId}
+            style={reduced ? {} : trail[i]}
+            className={`${styles.chainItem} ${task.cumulativeSlipDays > 0 ? styles.atRisk : ''}`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <Text size={300} weight={task.cumulativeSlipDays > 0 ? 'semibold' : 'regular'}>
+                {task.title}
               </Text>
-              {task.newEta && (
-                <Text size={100} style={{ color: tokens.colorPaletteRedForeground1 }}>
-                  → {new Date(task.newEta).toLocaleDateString()}
-                  {task.cumulativeSlipDays > 0 && ` (+${task.cumulativeSlipDays}d)`}
-                </Text>
+              {team && (
+                <Badge
+                  appearance="outline"
+                  style={{ color: team.color, borderColor: team.color, fontSize: '10px' }}>
+                  {team.label}
+                </Badge>
               )}
             </div>
-          )}
-        </animated.div>
-      ))}
+            {task.originalEta && (
+              <div className={styles.etaRow}>
+                <Text size={100} className={styles.strikethrough}>
+                  {new Date(task.originalEta).toLocaleDateString()}
+                </Text>
+                {task.newEta && (
+                  <Text size={100} style={{ color: tokens.colorPaletteRedForeground1 }}>
+                    → {new Date(task.newEta).toLocaleDateString()}
+                    {task.cumulativeSlipDays > 0 && ` (+${task.cumulativeSlipDays}d)`}
+                  </Text>
+                )}
+              </div>
+            )}
+          </animated.div>
+        );
+      })}
 
       {/* ── View replan options button ── */}
       {cascadeData && !showReplan && (

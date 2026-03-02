@@ -43,6 +43,7 @@ export function App(): JSX.Element {
     <CommitPane
       commitments={commitments}
       isLoading={isLoading}
+      currentUserId={DEMO_USER_ID}
       onCommitmentClick={(c) => {
         // Drill into cascade view for in-progress or items that block others
         if (c.status === 'in-progress' || c.blocks.length > 0) {
