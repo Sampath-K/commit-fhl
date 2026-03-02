@@ -13,6 +13,7 @@ import {
 import { animated, useSpring } from '@react-spring/web';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS } from '../../config/psychology.config';
+import { API_BASE } from '../../config/api.config';
 import type { AgentDraft, ApprovalDecision } from '../../types/api';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ export function ApprovalCard({
     onDecision?.(payload);
 
     // Fire-and-forget to the approvals endpoint
-    void fetch('/api/v1/approvals', {
+    void fetch(`${API_BASE}/api/v1/approvals`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(payload),
@@ -123,7 +124,7 @@ export function ApprovalCard({
     setFinalDecision('edited');
     setMode('done');
     onDecision?.(payload);
-    void fetch('/api/v1/approvals', {
+    void fetch(`${API_BASE}/api/v1/approvals`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(payload),

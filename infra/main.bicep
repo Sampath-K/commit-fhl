@@ -26,13 +26,17 @@ param imageTag string = 'v1'
 @description('Azure region for all resources')
 param location string = resourceGroup().location
 
+@description('Azure region for Static Web App (must support Microsoft.Web/staticSites)')
+param swaLocation string = 'eastus2'
+
 // ── Unique suffix for globally-unique names ──────────────────────────────────
-var uniqueSuffix = uniqueString(resourceGroup().id)
-var acrName      = 'commitfhlacr${take(uniqueSuffix, 6)}'
+var uniqueSuffix  = uniqueString(resourceGroup().id)
+var acrName       = 'commitfhlacr${take(uniqueSuffix, 6)}'
+var storageName   = 'cfhlstorage${take(uniqueSuffix, 8)}'
 
 // ── Storage Account (Table Storage — replaces Azurite in production) ─────────
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name:     'commitfhlstorage'
+  name:     storageName
   location: location
   sku: {
     name: 'Standard_LRS'
@@ -130,7 +134,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name:  'commit-api'
           image: '${acr.properties.loginServer}/commit-api:${imageTag}'
           resources: {
-            cpu:    '0.25'
+            cpu:    json('0.25')
             memory: '0.5Gi'
           }
           env: [
@@ -164,21 +168,15 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 // ── Static Web App (React frontend) ──────────────────────────────────────────
+// Note: Microsoft.Web/staticSites not available in eastus — use swaLocation param (default: eastus2)
 resource staticWebApp 'Microsoft.Web/staticSites@2022-09-01' = {
   name:     'commit-app'
-  location: location
+  location: swaLocation
   sku: {
     name: 'Free'
     tier: 'Free'
   }
-  properties: {
-    repositoryUrl: 'https://github.com/Sampath-K/commit-fhl'
-    branch:        'main'
-    buildProperties: {
-      appLocation:    'src/app'
-      outputLocation: 'dist'
-    }
-  }
+  properties: {}
 }
 
 // ── Outputs ───────────────────────────────────────────────────────────────────

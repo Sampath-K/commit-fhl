@@ -15,6 +15,7 @@ import {
 import { animated, useSpring, useTrail } from '@react-spring/web';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS, STAGGER_DELAYS } from '../../config/psychology.config';
+import { API_BASE } from '../../config/api.config';
 import type { CascadeApiResponse, CommitmentRecord, ReplanApiOption } from '../../types/api';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -146,7 +147,7 @@ export function CascadeView({
         userId,
         slipDays: '1',
       });
-      const res  = await fetch(`/api/v1/graph/cascade?${params}`, { method: 'POST' });
+      const res  = await fetch(`${API_BASE}/api/v1/graph/cascade?${params}`, { method: 'POST' });
       const json = (await res.json()) as CascadeApiResponse;
       setCascadeData(json);
     } catch {
@@ -161,7 +162,7 @@ export function CascadeView({
     if (replanOptions.length > 0) return;
     try {
       const params = new URLSearchParams({ rootTaskId: commitment.id, userId, slipDays: '1' });
-      const res  = await fetch(`/api/v1/graph/replan?${params}`, { method: 'POST' });
+      const res  = await fetch(`${API_BASE}/api/v1/graph/replan?${params}`, { method: 'POST' });
       const json = (await res.json()) as { options: ReplanApiOption[] };
       setReplanOptions(json.options ?? []);
     } catch {

@@ -17,9 +17,9 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Non-root user for security (P-05)
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --ingroup appgroup appuser
+# Non-root user for security (P-05) — Debian syntax (dotnet/aspnet:10.0 is Debian-based)
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup appuser
 USER appuser
 
 ENTRYPOINT ["dotnet", "CommitApi.dll"]

@@ -5,9 +5,9 @@
   "id": "00000000-0000-0000-0000-c0mm1tfh1v01",
   "developer": {
     "name": "7k2cc2 Demo",
-    "websiteUrl": "https://commit-app.placeholder.azurestaticapps.net",
-    "privacyUrl": "https://commit-app.placeholder.azurestaticapps.net/privacy",
-    "termsOfUseUrl": "https://commit-app.placeholder.azurestaticapps.net/terms"
+    "websiteUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net",
+    "privacyUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/privacy",
+    "termsOfUseUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/terms"
   },
   "name": {
     "short": "Commit",
@@ -26,14 +26,14 @@
     {
       "entityId": "commitPane",
       "name": "Commit",
-      "contentUrl": "https://commit-app.placeholder.azurestaticapps.net/",
-      "websiteUrl": "https://commit-app.placeholder.azurestaticapps.net/",
+      "contentUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/",
+      "websiteUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/",
       "scopes": ["personal"]
     }
   ],
   "permissions": ["identity", "messageTeamMembers"],
   "validDomains": [
-    "commit-api.placeholder.azurecontainerapps.io",
-    "commit-app.placeholder.azurestaticapps.net"
+    "commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io",
+    "thankful-pond-0ba16370f.6.azurestaticapps.net"
   ]
 }
