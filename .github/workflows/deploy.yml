@@ -1,0 +1,138 @@
+# Commit FHL — GitHub Actions Deploy Pipeline
+# Status: SCAFFOLD — activate post-demo by removing the 'if: false' guards
+#
+# Prerequisites before activating:
+#   1. Set GitHub Secrets:
+#      AZURE_CLIENT_ID       — app registration client ID
+#      AZURE_CLIENT_SECRET   — app registration client secret
+#      AZURE_TENANT_ID       — 91b9767c-6b0a-4b0b-bd4d-e08a6383426c
+#      AZURE_SUBSCRIPTION_ID — E5 tenant subscription ID
+#      ACR_LOGIN_SERVER      — <acrname>.azurecr.io (from Bicep output)
+#      ACR_USERNAME          — ACR admin username
+#      ACR_PASSWORD          — ACR admin password
+#   2. Remove `if: false` from the jobs below
+#   3. Ensure infra/parameters.json has clientSecret resolved from Key Vault
+
+name: Deploy Commit FHL
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (dev / pilot)'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, pilot]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION:   '20.x'
+  RESOURCE_GROUP: 'commit-fhl-rg'
+  CONTAINER_APP:  'commit-api'
+  STATIC_WEB_APP: 'commit-app'
+
+jobs:
+
+  # ── Build & Test API ────────────────────────────────────────────────────────
+  build-api:
+    name: Build & Test API
+    runs-on: ubuntu-latest
+    if: false  # TODO: remove 'if: false' to activate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore src/api/CommitApi.csproj
+
+      - name: Build
+        run: dotnet build src/api/CommitApi.csproj --no-restore -c Release
+
+      - name: Test
+        run: dotnet test src/api/CommitApi.Tests/CommitApi.Tests.csproj --no-build -c Release --logger trx
+
+      - name: Docker build
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/commit-api:${{ github.sha }} \
+            -f src/api/Dockerfile src/api
+
+      - name: Docker login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Docker push
+        run: docker push ${{ secrets.ACR_LOGIN_SERVER }}/commit-api:${{ github.sha }}
+
+      - name: Output image tag
+        id: image
+        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+    outputs:
+      image-tag: ${{ steps.image.outputs.tag }}
+
+  # ── Deploy API to Container Apps ────────────────────────────────────────────
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    needs: build-api
+    if: false  # TODO: remove 'if: false' to activate
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret:   ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Container App image
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_LOGIN_SERVER }}/commit-api:${{ needs.build-api.outputs.image-tag }}
+
+  # ── Build & Deploy Frontend to Static Web Apps ─────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    if: false  # TODO: remove 'if: false' to activate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: src/app
+
+      - name: Build
+        run: npm run build
+        working-directory: src/app
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token:                      ${{ secrets.GITHUB_TOKEN }}
+          action:                          upload
+          app_location:                    src/app
+          output_location:                 dist
