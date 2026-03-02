@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commit — System Architecture</title>
+<style>
+  :root {
+    --bg:       #0a0d14;
+    --surface:  #111827;
+    --card:     #161f2e;
+    --border:   #1e2d45;
+    --accent:   #0078d4;
+    --accent2:  #107c10;
+    --accent3:  #881798;
+    --warn:     #ca5010;
+    --dim:      #6b7280;
+    --text:     #e5e7eb;
+    --text-dim: #9ca3af;
+    --green:    #16a34a;
+    --amber:    #d97706;
+    --red:      #dc2626;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 24px;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-ring {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0078d4 0%, #881798 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .page-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .page-header .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+  .badge-row { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+  .badge {
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .badge-blue  { background: #0078d420; color: #60b0f4; border: 1px solid #0078d440; }
+  .badge-green { background: #16a34a20; color: #4ade80; border: 1px solid #16a34a40; }
+  .badge-purple{ background: #88179820; color: #c084fc; border: 1px solid #88179840; }
+  .badge-amber { background: #d9770620; color: #fcd34d; border: 1px solid #d9770640; }
+
+  /* ── Sections ── */
+  .section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--dim);
+    margin-bottom: 12px; margin-top: 32px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Main architecture canvas ── */
+  .arch-canvas {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-canvas::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 20% 10%, #0078d408 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, #88179808 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* ── Layer rows ── */
+  .layer {
+    display: flex; align-items: stretch; gap: 0;
+    margin-bottom: 0;
+    position: relative;
+  }
+  .layer-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--dim);
+    padding: 0 10px;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 36px;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .layer-content {
+    flex: 1;
+    padding: 16px 16px 20px 16px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: flex-start;
+  }
+
+  .layer-row {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--card);
+  }
+
+  /* ── Component boxes ── */
+  .comp {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-width: 140px;
+    flex: 0 0 auto;
+    transition: border-color 0.15s;
+    cursor: default;
+    position: relative;
+  }
+  .comp:hover { border-color: var(--accent); }
+  .comp-icon { font-size: 18px; margin-bottom: 4px; display: block; }
+  .comp-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .comp-file { font-size: 10px; color: var(--dim); font-family: 'Cascadia Code', 'Consolas', monospace; margin-top: 2px; }
+  .comp-detail { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+  .comp-badge {
+    position: absolute; top: 6px; right: 8px;
+    font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+  }
+  .cb-blue   { background: #0078d420; color: #60b0f4; }
+  .cb-green  { background: #16a34a20; color: #4ade80; }
+  .cb-amber  { background: #d9770620; color: #fcd34d; }
+  .cb-red    { background: #dc262620; color: #f87171; }
+  .cb-purple { background: #88179820; color: #c084fc; }
+
+  /* ── Flow arrows between layers ── */
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding: 4px 0;
+    color: var(--dim);
+    font-size: 11px;
+    gap: 8px;
+  }
+  .flow-arrow .arrow-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+  .flow-arrow .arrow-label {
+    font-size: 10px; font-weight: 600; color: var(--dim);
+    white-space: nowrap;
+  }
+
+  /* ── Data flow diagram ── */
+  .flow-diagram {
+    display: grid;
+    grid-template-columns: 1fr 32px 1fr 32px 1fr 32px 1fr 32px 1fr;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+  }
+  .flow-step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .flow-step-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+  .flow-step-name { font-size: 11px; font-weight: 600; }
+  .flow-step-desc { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+  .flow-chevron { text-align: center; color: var(--dim); font-size: 18px; }
+
+  /* ── Trigger paths ── */
+  .trigger-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .trigger-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .trigger-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .trigger-path {
+    font-size: 10px; color: var(--text-dim);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .trigger-step {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px;
+    background: var(--surface);
+    border-radius: 5px;
+    font-size: 10px;
+  }
+  .trigger-step .dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-blue   { background: #0078d4; }
+  .dot-green  { background: #16a34a; }
+  .dot-amber  { background: #d97706; }
+  .dot-purple { background: #881798; }
+
+  /* ── Infrastructure grid ── */
+  .infra-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .infra-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .infra-card .infra-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .infra-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .infra-detail { font-size: 10px; color: var(--text-dim); display: flex; flex-direction: column; gap: 3px; }
+  .infra-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 10px; font-weight: 500;
+  }
+
+  /* ── Scale evidence ── */
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .scale-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .scale-card h4 { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .scale-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .scale-item:last-child { border-bottom: none; }
+  .scale-check { color: #4ade80; flex-shrink: 0; font-size: 13px; }
+  .scale-item-text { color: var(--text-dim); }
+  .scale-item-text strong { color: var(--text); }
+
+  /* ── Two-col layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+  /* ── Security / PII section ── */
+  .security-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .sec-item {
+    background: var(--card);
+    border: 1px solid #dc262640;
+    border-radius: 8px;
+    padding: 10px 14px;
+    flex: 1; min-width: 160px;
+  }
+  .sec-item h5 { font-size: 11px; font-weight: 700; color: #f87171; margin-bottom: 4px; }
+  .sec-item p  { font-size: 10px; color: var(--text-dim); }
+
+  /* ── Endpoint table ── */
+  .ep-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .ep-table th {
+    text-align: left; padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--dim);
+  }
+  .ep-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .ep-table tr:last-child td { border-bottom: none; }
+  .ep-table tr:hover td { background: #ffffff05; }
+  .method {
+    font-family: monospace; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .m-get    { background: #16a34a20; color: #4ade80; }
+  .m-post   { background: #0078d420; color: #60b0f4; }
+  .m-delete { background: #dc262620; color: #f87171; }
+  .ep-path  { font-family: monospace; font-size: 11px; color: var(--text); }
+  .ep-desc  { color: var(--text-dim); }
+  .ep-task  { color: var(--dim); font-size: 10px; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex; gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .stat-item {
+    flex: 1; padding: 16px 20px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--dim); margin-top: 2px; }
+  .stat-blue   { color: #60b0f4; }
+  .stat-green  { color: #4ade80; }
+  .stat-amber  { color: #fcd34d; }
+  .stat-purple { color: #c084fc; }
+  .stat-white  { color: var(--text); }
+
+  /* ── Psychology layer ── */
+  .psych-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  .psych-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent3);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .psych-card h5 { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .psych-card p  { font-size: 10px; color: var(--text-dim); }
+
+  /* ── Tooltip ── */
+  .tooltip-host { position: relative; display: inline-block; }
+  .tooltip-host:hover .tooltip { opacity: 1; pointer-events: none; }
+  .tooltip {
+    opacity: 0;
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #1e293b; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px;
+    font-size: 11px; color: var(--text-dim);
+    white-space: nowrap; z-index: 100;
+    transition: opacity 0.15s;
+    pointer-events: none;
+  }
+
+  /* ── Separator ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+  /* ── Scrollable code block ── */
+  pre {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 11px;
+    color: #e6edf3;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .kw  { color: #ff7b72; }
+  .ty  { color: #ffa657; }
+  .str { color: #a5d6ff; }
+  .cm  { color: #8b949e; }
+  .fn  { color: #d2a8ff; }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-size: 10px; color: var(--dim);
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── Timeline ── */
+  .timeline {
+    display: flex; gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .tl-step {
+    flex: 1; padding: 12px 16px;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .tl-step:last-child { border-right: none; }
+  .tl-day { font-size: 10px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.8px; }
+  .tl-title { font-size: 11px; font-weight: 600; margin: 4px 0 2px; }
+  .tl-detail { font-size: 10px; color: var(--text-dim); }
+  .tl-status { font-size: 10px; margin-top: 6px; }
+  .tl-done   { color: #4ade80; }
+  .tl-active { color: #fcd34d; }
+
+  /* ── Connector SVG ── */
+  .connector-wrap { position: relative; overflow: visible; }
+
+  @media (max-width: 900px) {
+    .infra-grid   { grid-template-columns: repeat(2, 1fr); }
+    .scale-grid   { grid-template-columns: 1fr; }
+    .psych-grid   { grid-template-columns: repeat(2, 1fr); }
+    .trigger-grid { grid-template-columns: 1fr; }
+    .two-col      { grid-template-columns: 1fr; }
+    .three-col    { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE HEADER
+═══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="logo-ring">🔗</div>
+  <div>
+    <h1>Commit — System Architecture</h1>
+    <div class="sub">FHL Demo · As-Built · March 2026 · Revision 1.0</div>
+  </div>
+  <div class="badge-row">
+    <span class="badge badge-blue">.NET 9 · C#</span>
+    <span class="badge badge-green">Azure Container Apps</span>
+    <span class="badge badge-purple">Graph API + OBO</span>
+    <span class="badge badge-amber">66 Tests · xUnit</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     STATS BAR
+═══════════════════════════════════════════════════════════ -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num stat-blue">9</div>
+    <div class="stat-label">API Endpoints</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num stat-green">4</div>
+    <div class="stat-label">Signal Sources</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num stat-amber">3</div>
+    <div class="stat-label">Extraction Triggers</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num stat-purple">2</div>
+    <div class="stat-label">BackgroundServices</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num stat-white">66</div>
+    <div class="stat-label">xUnit Tests</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num stat-blue">&lt;5<span style="font-size:14px">min</span></div>
+    <div class="stat-label">E2E Latency SLA</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num stat-green">24</div>
+    <div class="stat-label">Seeded Commitments</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 1 — FULL STACK ARCHITECTURE
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">01 &nbsp; Full-Stack Architecture</div>
+
+<!-- Legend -->
+<div class="legend">
+  <span style="font-weight:700; color: var(--text-dim)">Layers:</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#0078d4"></span> Microsoft 365 / Graph API</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#60b0f4"></span> React Frontend (SWA)</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#4ade80"></span> .NET 9 API (ACA)</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#fcd34d"></span> Azure AI / Services</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#c084fc"></span> Governance / Psychology</span>
+</div>
+
+<div class="arch-canvas">
+
+  <!-- ── Layer 0 — Microsoft 365 ── -->
+  <div class="layer-row">
+    <div class="layer-label" style="color: #60b0f4">M365</div>
+    <div class="layer-content" style="background: #0078d408">
+      <div class="comp">
+        <span class="comp-badge cb-blue">Graph API</span>
+        <span class="comp-icon">📹</span>
+        <div class="comp-name">Teams Transcripts</div>
+        <div class="comp-file">GET /communications/callRecords</div>
+        <div class="comp-detail">Meeting audio → text chunks, per-speaker</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Graph API</span>
+        <span class="comp-icon">💬</span>
+        <div class="comp-name">Teams Chat</div>
+        <div class="comp-file">GET /chats, /teams/channels/messages</div>
+        <div class="comp-detail">DMs + channel threads, last 7 days</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Graph API</span>
+        <span class="comp-icon">📧</span>
+        <div class="comp-name">Outlook Mail</div>
+        <div class="comp-file">GET /me/messages?$filter=...</div>
+        <div class="comp-detail">Inbox + sent items, keyword filter</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-amber">ADO REST</span>
+        <span class="comp-icon">🔧</span>
+        <div class="comp-name">Azure DevOps</div>
+        <div class="comp-file">GET /{org}/{proj}/_apis/git/pullrequests</div>
+        <div class="comp-detail">PR review threads, open items</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Graph API</span>
+        <span class="comp-icon">🔔</span>
+        <div class="comp-name">Change Notifications</div>
+        <div class="comp-file">POST /subscriptions → webhook push</div>
+        <div class="comp-detail">Real-time Teams/Mail change events</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-purple">Viva</span>
+        <span class="comp-icon">📊</span>
+        <div class="comp-name">Viva Insights</div>
+        <div class="comp-file">VivaInsightsClient.cs</div>
+        <div class="comp-detail">Load index · burnout trend · free slots</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">↕ OBO Token Flow (MSAL · on-behalf-of) · HMAC Webhook Validation</div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ── Layer 1 — React Frontend ── -->
+  <div class="layer-row">
+    <div class="layer-label" style="color: #60b0f4">Frontend</div>
+    <div class="layer-content" style="background: #60b0f408">
+      <div class="comp">
+        <span class="comp-badge cb-blue">React 18</span>
+        <span class="comp-icon">🗂️</span>
+        <div class="comp-name">CommitPane</div>
+        <div class="comp-file">CommitPane.tsx</div>
+        <div class="comp-detail">Commitment cards · team badges · Eisenhower labels</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">React 18</span>
+        <span class="comp-icon">🌊</span>
+        <div class="comp-name">CascadeView</div>
+        <div class="comp-file">CascadeView.tsx</div>
+        <div class="comp-detail">Stagger-animated chain · team colour labels</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">1-click</span>
+        <span class="comp-icon">✅</span>
+        <div class="comp-name">ApprovalCard</div>
+        <div class="comp-file">ApprovalCard.tsx</div>
+        <div class="comp-detail">Approve / Edit / Skip · calendar block</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-purple">Psych</span>
+        <span class="comp-icon">🎯</span>
+        <div class="comp-name">Psychology Layer</div>
+        <div class="comp-file">psychology/ · animations/</div>
+        <div class="comp-detail">SDT · Progress Principle · spring animations</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-amber">Hooks</span>
+        <span class="comp-icon">🔄</span>
+        <div class="comp-name">useCommitments</div>
+        <div class="comp-file">hooks/useCommitments.ts</div>
+        <div class="comp-detail">SWR-style polling · optimistic updates</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-amber">Config</span>
+        <span class="comp-icon">🏷️</span>
+        <div class="comp-name">Team Config</div>
+        <div class="comp-file">config/teams.config.ts</div>
+        <div class="comp-detail">userId/taskId → team label + colour</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">↕ REST JSON · Bearer token · CORS enabled</div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ── Layer 2 — API Core ── -->
+  <div class="layer-row">
+    <div class="layer-label" style="color: #4ade80">API Core</div>
+    <div class="layer-content" style="background: #16a34a08">
+      <div class="comp">
+        <span class="comp-badge cb-green">DI</span>
+        <span class="comp-icon">⚙️</span>
+        <div class="comp-name">Program.cs</div>
+        <div class="comp-file">src/api/Program.cs</div>
+        <div class="comp-detail">ASP.NET Core Minimal API · 9 endpoints · 675 lines</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Auth</span>
+        <span class="comp-icon">🔐</span>
+        <div class="comp-name">GraphClientFactory</div>
+        <div class="comp-file">Auth/GraphClientFactory.cs</div>
+        <div class="comp-detail">MSAL OBO · Microsoft.Identity.Web · tenant-scoped</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Singleton</span>
+        <span class="comp-icon">🗄️</span>
+        <div class="comp-name">TokenCache</div>
+        <div class="comp-file">Services/TokenCache.cs</div>
+        <div class="comp-detail">OBO token store · JWT exp parsing · subscriptionId→userId</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Orchestrator</span>
+        <span class="comp-icon">🎻</span>
+        <div class="comp-name">ExtractionOrchestrator</div>
+        <div class="comp-file">Services/ExtractionOrchestrator.cs</div>
+        <div class="comp-detail">4 extractors concurrent · NLP · dedup · Eisenhower · upsert</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Webhook</span>
+        <span class="comp-icon">📡</span>
+        <div class="comp-name">WebhookHandler</div>
+        <div class="comp-file">Webhooks/WebhookHandler.cs</div>
+        <div class="comp-detail">HMAC-SHA256 · clientState anti-replay · immediate trigger</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Global</span>
+        <span class="comp-icon">🛡️</span>
+        <div class="comp-name">CommitException</div>
+        <div class="comp-file">Exceptions/CommitException.cs</div>
+        <div class="comp-detail">Typed errors → HTTP status · requestId on all responses</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">↕ Dependency Injection (Singleton scoped) · in-process calls</div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ── Layer 3 — Background Services + Pipeline ── -->
+  <div class="layer-row">
+    <div class="layer-label" style="color: #4ade80">Pipeline</div>
+    <div class="layer-content" style="background: #16a34a05">
+      <div class="comp">
+        <span class="comp-badge cb-green">BG Svc</span>
+        <span class="comp-icon">⏱️</span>
+        <div class="comp-name">ExtractionPollingService</div>
+        <div class="comp-file">Services/ExtractionPollingService.cs</div>
+        <div class="comp-detail">PeriodicTimer · 5 min · min 3 min per-user · all active users concurrent</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-amber">BG Svc</span>
+        <span class="comp-icon">🔍</span>
+        <div class="comp-name">RiskDetector</div>
+        <div class="comp-file">Agents/RiskDetector.cs</div>
+        <div class="comp-detail">PeriodicTimer · 15 min · re-scores existing commitments</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">NLP</span>
+        <span class="comp-icon">🧠</span>
+        <div class="comp-name">NlpPipeline</div>
+        <div class="comp-file">Services/NlpPipeline.cs</div>
+        <div class="comp-detail">Azure OpenAI GPT-4o · commitment extraction from transcript chunks</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Dedup</span>
+        <span class="comp-icon">🧹</span>
+        <div class="comp-name">DeduplicationService</div>
+        <div class="comp-file">Services/DeduplicationService.cs</div>
+        <div class="comp-detail">Cross-source dedup · fuzzy title match · SourceId key</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-amber">Priority</span>
+        <span class="comp-icon">📐</span>
+        <div class="comp-name">EisenhowerScorer</div>
+        <div class="comp-file">Services/EisenhowerScorer.cs</div>
+        <div class="comp-detail">Urgent/Important matrix · due-date · watcher count signal</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Graph</span>
+        <span class="comp-icon">🕸️</span>
+        <div class="comp-name">DependencyLinker</div>
+        <div class="comp-file">Graph/DependencyLinker.cs</div>
+        <div class="comp-detail">Builds DAG from blocks/blockedBy · NLP-assisted edge inference</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-red">Cascade</span>
+        <span class="comp-icon">⛓️</span>
+        <div class="comp-name">CascadeSimulator</div>
+        <div class="comp-file">Graph/CascadeSimulator.cs</div>
+        <div class="comp-detail">BFS propagation · slipDays × ownersAffected · confidence score</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Replan</span>
+        <span class="comp-icon">🗺️</span>
+        <div class="comp-name">ReplanGenerator</div>
+        <div class="comp-file">Replan/ReplanGenerator.cs</div>
+        <div class="comp-detail">3 options (A/B/C) · GPT-4o · comms draft per stakeholder</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">↕ Azure SDK calls (ConcurrentDictionary thread-safe) · async/await throughout</div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ── Layer 4 — Azure Persistence + AI ── -->
+  <div class="layer-row">
+    <div class="layer-label" style="color: #fcd34d">Azure</div>
+    <div class="layer-content" style="background: #d9770608">
+      <div class="comp">
+        <span class="comp-badge cb-amber">Storage</span>
+        <span class="comp-icon">📦</span>
+        <div class="comp-name">Azure Table Storage</div>
+        <div class="comp-file">Repositories/CommitmentRepository.cs</div>
+        <div class="comp-detail">PartitionKey=userId · RowKey=taskId · upsert/list/delete · schema-free</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">AI</span>
+        <span class="comp-icon">🤖</span>
+        <div class="comp-name">Azure OpenAI</div>
+        <div class="comp-file">Azure.AI.OpenAI SDK (C#)</div>
+        <div class="comp-detail">GPT-4o · commitment extraction · replan drafts · structured output</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-amber">Config</span>
+        <span class="comp-icon">🚩</span>
+        <div class="comp-name">Azure App Configuration</div>
+        <div class="comp-file">Config/FeatureFlagService.cs</div>
+        <div class="comp-detail">Feature flags · IMemoryCache 60s TTL · graceful fallback</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Telemetry</span>
+        <span class="comp-icon">📈</span>
+        <div class="comp-name">Application Insights</div>
+        <div class="comp-file">Config/AppInsightsClient.cs</div>
+        <div class="comp-detail">TrackUserAction · TrackBusinessKpi · PII scrubbing (SHA-256)</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-green">Hosting</span>
+        <span class="comp-icon">☁️</span>
+        <div class="comp-name">Azure Container Apps</div>
+        <div class="comp-file">infra/main.bicep</div>
+        <div class="comp-detail">Scale 0→N · East US · HTTPS only · env secrets via ACA secrets</div>
+      </div>
+      <div class="comp">
+        <span class="comp-badge cb-blue">Frontend</span>
+        <span class="comp-icon">🌐</span>
+        <div class="comp-name">Static Web Apps</div>
+        <div class="comp-file">src/app/ → SWA deploy</div>
+        <div class="comp-detail">CDN-backed · thankful-pond-0ba16370f.6.azurestaticapps.net</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /arch-canvas -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 2 — THREE EXTRACTION TRIGGERS
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">02 &nbsp; Three Extraction Trigger Paths</div>
+<p style="font-size: 11px; color: var(--text-dim); margin-bottom: 14px;">
+  Every signal source is checked via three independent paths — ensuring commitments arrive within the SLA
+  regardless of whether the user is active, inactive, or an event just occurred.
+</p>
+
+<div class="trigger-grid">
+
+  <!-- Path 1 — Webhook -->
+  <div class="trigger-card">
+    <h4 style="color: #60b0f4">⚡ Path 1 — Webhook (Immediate)</h4>
+    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
+      <strong style="color: var(--text)">Latency: &lt; 30 seconds</strong> · Triggered by Graph change notifications
+    </div>
+    <div class="trigger-path">
+      <div class="trigger-step">
+        <span class="dot dot-blue"></span>
+        Graph sends POST to <code style="font-size:10px">/api/v1/webhook</code>
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-blue"></span>
+        HMAC-SHA256 signature validated
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-blue"></span>
+        clientState anti-replay check
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-blue"></span>
+        subscriptionId → userId (TokenCache)
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-blue"></span>
+        ExtractionOrchestrator.ExtractAndStoreAsync()
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-blue"></span>
+        TokenCache.MarkExtracted(userId)
+      </div>
+    </div>
+  </div>
+
+  <!-- Path 2 — Polling -->
+  <div class="trigger-card">
+    <h4 style="color: #4ade80">⏰ Path 2 — Background Polling (5 min)</h4>
+    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
+      <strong style="color: var(--text)">Latency: ≤ 5 minutes</strong> · Ensures D-001 metric even without webhooks
+    </div>
+    <div class="trigger-path">
+      <div class="trigger-step">
+        <span class="dot dot-green"></span>
+        ExtractionPollingService wakes (PeriodicTimer)
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-green"></span>
+        TokenCache.GetActiveUserIds() → eligible list
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-green"></span>
+        Filter: token valid + ≥ 3 min since last extract
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-green"></span>
+        Task.WhenAll — all eligible users concurrently
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-green"></span>
+        ExtractionOrchestrator.ExtractAndStoreAsync()
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-green"></span>
+        MarkExtracted per user, retry next cycle on failure
+      </div>
+    </div>
+  </div>
+
+  <!-- Path 3 — User-initiated -->
+  <div class="trigger-card">
+    <h4 style="color: #fcd34d">👤 Path 3 — User-Initiated (Fire &amp; Forget)</h4>
+    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 10px;">
+      <strong style="color: var(--text)">Latency: immediate</strong> · Triggered on pane open or explicit refresh
+    </div>
+    <div class="trigger-path">
+      <div class="trigger-step">
+        <span class="dot dot-amber"></span>
+        User opens Teams pane → GET /commitments/{userId}
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-amber"></span>
+        Bearer token stored → TokenCache.Store(userId, token)
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-amber"></span>
+        Check: LastExtracted > 3 min ago?
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-amber"></span>
+        Task.Run (fire-and-forget) — response not blocked
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-amber"></span>
+        ExtractionOrchestrator runs in background
+      </div>
+      <div class="trigger-step">
+        <span class="dot dot-amber"></span>
+        POST /extract for explicit user-initiated refresh
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 3 — EXTRACTION PIPELINE
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">03 &nbsp; Extraction Pipeline (ExtractionOrchestrator)</div>
+
+<div class="flow-diagram">
+  <div class="flow-step">
+    <span class="flow-step-icon">🔀</span>
+    <div class="flow-step-name">Concurrent Fetch</div>
+    <div class="flow-step-desc">4 extractors<br>Task.WhenAll</div>
+  </div>
+  <div class="flow-chevron">→</div>
+  <div class="flow-step">
+    <span class="flow-step-icon">🧠</span>
+    <div class="flow-step-name">NLP Pipeline</div>
+    <div class="flow-step-desc">GPT-4o<br>transcript chunks</div>
+  </div>
+  <div class="flow-chevron">→</div>
+  <div class="flow-step">
+    <span class="flow-step-icon">🔀</span>
+    <div class="flow-step-name">Merge Sources</div>
+    <div class="flow-step-desc">Concat all<br>4 source lists</div>
+  </div>
+  <div class="flow-chevron">→</div>
+  <div class="flow-step">
+    <span class="flow-step-icon">🧹</span>
+    <div class="flow-step-name">Deduplicate</div>
+    <div class="flow-step-desc">Fuzzy title<br>+ SourceId key</div>
+  </div>
+  <div class="flow-chevron">→</div>
+  <div class="flow-step">
+    <span class="flow-step-icon">📐</span>
+    <div class="flow-step-name">Score + Upsert</div>
+    <div class="flow-step-desc">Eisenhower matrix<br>Table Storage</div>
+  </div>
+</div>
+
+<div class="three-col" style="margin-top: 10px;">
+  <div class="trigger-card">
+    <h4>📹 TranscriptExtractor</h4>
+    <div class="trigger-path">
+      <div class="trigger-step"><span class="dot dot-blue"></span> Graph callRecords API</div>
+      <div class="trigger-step"><span class="dot dot-blue"></span> Audio transcript chunks</div>
+      <div class="trigger-step"><span class="dot dot-blue"></span> Per-speaker segmentation</div>
+    </div>
+  </div>
+  <div class="trigger-card">
+    <h4>💬 ChatExtractor + 📧 EmailExtractor</h4>
+    <div class="trigger-path">
+      <div class="trigger-step"><span class="dot dot-green"></span> Teams DM + channel messages</div>
+      <div class="trigger-step"><span class="dot dot-green"></span> Outlook inbox + sent</div>
+      <div class="trigger-step"><span class="dot dot-green"></span> Last 7 days, commitment keywords</div>
+    </div>
+  </div>
+  <div class="trigger-card">
+    <h4>🔧 AdoExtractor</h4>
+    <div class="trigger-path">
+      <div class="trigger-step"><span class="dot dot-amber"></span> Azure DevOps REST API</div>
+      <div class="trigger-step"><span class="dot dot-amber"></span> Open PR review threads</div>
+      <div class="trigger-step"><span class="dot dot-amber"></span> Action items + assignee</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 4 — API ENDPOINT REFERENCE
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">04 &nbsp; API Endpoint Reference</div>
+
+<div class="arch-canvas" style="padding: 0; overflow: hidden;">
+  <table class="ep-table">
+    <thead>
+      <tr>
+        <th style="width: 80px">Method</th>
+        <th>Path</th>
+        <th>Description</th>
+        <th style="width: 90px">Task</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="method m-get">GET</span></td>
+        <td class="ep-path">/api/v1/health</td>
+        <td class="ep-desc">User info + Graph connectivity status; 200=ok / 200=degraded</td>
+        <td class="ep-task">T-005</td>
+      </tr>
+      <tr>
+        <td><span class="method m-get">GET</span></td>
+        <td class="ep-path">/api/v1/commitments/{userId}</td>
+        <td class="ep-desc">List commitments; auto-triggers background extraction if stale (>3 min)</td>
+        <td class="ep-task">T-006 · T-043</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/commitments</td>
+        <td class="ep-desc">Upsert a single commitment (seed + direct creation)</td>
+        <td class="ep-task">T-006</td>
+      </tr>
+      <tr>
+        <td><span class="method m-delete">DELETE</span></td>
+        <td class="ep-path">/api/v1/users/{userId}/data</td>
+        <td class="ep-desc">Right-to-erasure — deletes all commitments + Graph subscriptions</td>
+        <td class="ep-task">T-C06 · P-05</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/webhook</td>
+        <td class="ep-desc">Graph change notification callback; HMAC validation + immediate extraction</td>
+        <td class="ep-task">T-008 · T-043</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/subscriptions</td>
+        <td class="ep-desc">Register Graph subscriptions; maps subscriptionId→userId in TokenCache</td>
+        <td class="ep-task">T-009 · T-043</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/extract</td>
+        <td class="ep-desc">User-initiated extraction; caches token for future polling; returns upserted count</td>
+        <td class="ep-task">T-010–016 · T-043</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/graph/build</td>
+        <td class="ep-desc">Build dependency graph for userId; returns edge count</td>
+        <td class="ep-task">T-020</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/graph/cascade?rootTaskId&slipDays</td>
+        <td class="ep-desc">BFS cascade simulation; persists impact score on root task</td>
+        <td class="ep-task">T-021–022</td>
+      </tr>
+      <tr>
+        <td><span class="method m-get">GET</span></td>
+        <td class="ep-path">/api/v1/capacity?userId</td>
+        <td class="ep-desc">Viva Insights snapshot: loadIndex, burnoutTrend, freeSlots</td>
+        <td class="ep-task">T-023</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/graph/replan?rootTaskId&slipDays</td>
+        <td class="ep-desc">Generate 3 replan options (A/B/C) with stakeholder comms drafts</td>
+        <td class="ep-task">T-026</td>
+      </tr>
+      <tr>
+        <td><span class="method m-get">GET</span></td>
+        <td class="ep-path">/api/v1/users/{userId}/motivation</td>
+        <td class="ep-desc">Delivery score, streak, XP, competency level, cascade health rate</td>
+        <td class="ep-task">T-034 · P-27</td>
+      </tr>
+      <tr>
+        <td><span class="method m-post">POST</span></td>
+        <td class="ep-path">/api/v1/approvals</td>
+        <td class="ep-desc">Handle Approve / Edit / Skip decisions; triggers calendar block on approve</td>
+        <td class="ep-task">T-034</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 5 — AZURE INFRASTRUCTURE
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">05 &nbsp; Azure Infrastructure</div>
+
+<div class="infra-grid">
+  <div class="infra-card">
+    <span class="infra-icon">☁️</span>
+    <h4>Azure Container Apps</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">Region: East US</span>
+      <span class="infra-pill">HTTPS only</span>
+      <span class="infra-pill">Scale 0→N replicas</span>
+      <span class="infra-pill">Secrets via ACA env</span>
+      <div style="margin-top: 6px; font-size: 10px;">
+        <code style="color: #9ca3af">commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io</code>
+      </div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">🌐</span>
+    <h4>Azure Static Web Apps</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">React 18 + Vite</span>
+      <span class="infra-pill">CDN global edge</span>
+      <span class="infra-pill">Free tier</span>
+      <span class="infra-pill">GitHub Actions deploy</span>
+      <div style="margin-top: 6px; font-size: 10px;">
+        <code style="color: #9ca3af">thankful-pond-0ba16370f.6.azurestaticapps.net</code>
+      </div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">📦</span>
+    <h4>Azure Table Storage</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">Table: commitments</span>
+      <span class="infra-pill">PartitionKey=userId</span>
+      <span class="infra-pill">RowKey=taskId</span>
+      <span class="infra-pill">Upsert + TTL-safe</span>
+      <div style="margin-top: 6px; font-size: 10px;">Schema-free · &lt;10ms reads · $0.00036/10K ops</div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">🤖</span>
+    <h4>Azure OpenAI</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">Model: GPT-4o</span>
+      <span class="infra-pill">Azure.AI.OpenAI SDK</span>
+      <span class="infra-pill">Structured output</span>
+      <div style="margin-top: 6px; font-size: 10px;">NLP extraction · replan drafting · stakeholder comms</div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">🚩</span>
+    <h4>Azure App Configuration</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">Feature flags</span>
+      <span class="infra-pill">IMemoryCache 60s</span>
+      <span class="infra-pill">Graceful fallback</span>
+      <div style="margin-top: 6px; font-size: 10px;">Zero-downtime flag rollout · per-environment config</div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">📈</span>
+    <h4>Application Insights</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">TrackUserAction</span>
+      <span class="infra-pill">TrackBusinessKpi</span>
+      <span class="infra-pill">PII scrubbed</span>
+      <span class="infra-pill">Adaptive sampling off</span>
+      <div style="margin-top: 6px; font-size: 10px;">Custom KPIs: webhook-received, cascade, replan, approval</div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">🔐</span>
+    <h4>Azure AD / Entra ID</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">Tenant: 7k2cc2</span>
+      <span class="infra-pill">MSAL OBO flow</span>
+      <span class="infra-pill">Microsoft.Identity.Web</span>
+      <div style="margin-top: 6px; font-size: 10px;">Delegated: Mail.Read · Chat.Read · Calendars.ReadWrite</div>
+    </div>
+  </div>
+  <div class="infra-card">
+    <span class="infra-icon">🏗️</span>
+    <h4>Bicep IaC</h4>
+    <div class="infra-detail">
+      <span class="infra-pill">infra/main.bicep</span>
+      <span class="infra-pill">parameters.json</span>
+      <span class="infra-pill">Idempotent deploy</span>
+      <div style="margin-top: 6px; font-size: 10px;">All Azure resources defined as code · RG: commit-fhl-rg</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 6 — PRODUCTION-GRADE EVIDENCE
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">06 &nbsp; Production-Grade Evidence</div>
+
+<div class="scale-grid">
+
+  <div class="scale-card">
+    <h4>🔒 Security</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>HMAC-SHA256</strong> on every webhook — CryptographicOperations.FixedTimeEquals (timing-safe)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>clientState anti-replay</strong> — every Graph notification validated before processing</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>OBO token scoping</strong> — only accesses data the signed-in user has delegated rights to</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>JWT expiry parsing</strong> — TokenCache never serves an expired token; ConcurrentDictionary thread-safe</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>PII scrubbing</strong> — all logs hash userId with SHA-256 (PiiScrubber.HashValue)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Right-to-erasure</strong> endpoint — DELETE /users/{userId}/data removes all data + Graph subscriptions</span></div>
+  </div>
+
+  <div class="scale-card">
+    <h4>⚡ Concurrency &amp; Resilience</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Task.WhenAll</strong> for all 4 extractors — no sequential blocking, full concurrent I/O</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Fire-and-forget extraction</strong> — GET /commitments never blocked by extraction latency</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>PeriodicTimer</strong> (not Timer) — avoids timer drift, graceful CancellationToken teardown</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Per-user extraction guard</strong> — 3-minute debounce prevents duplicate concurrent runs per user</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Typed CommitException</strong> — all errors become structured HTTP responses with requestId</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Webhook dedup</strong> — HashSet per batch prevents duplicate extraction per user per notification</span></div>
+  </div>
+
+  <div class="scale-card">
+    <h4>🧪 Testability</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>66 xUnit tests</strong> — extractors, NLP pipeline, cascade, dedup, scorer, agents</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Interface-first design</strong> — every service behind IXxx interface, fully mockable</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>IExtractionOrchestrator</strong> — single interface for all 3 trigger paths, testable in isolation</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Sentinel governance</strong> — 2 runs completed, 0 violations; architectural decisions in decisions.md</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>DI-wired singletons</strong> — no static state leakage, entire graph injectable</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>OpenAPI / Swagger</strong> — every endpoint annotated, WithName + WithOpenApi</span></div>
+  </div>
+
+  <div class="scale-card">
+    <h4>📐 Observability</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Structured logging</strong> throughout — ILogger&lt;T&gt; with structured parameters, not string interpolation</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>TrackUserAction</strong> on every significant path (extract, cascade, replan, approval, motivation)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>TrackBusinessKpi</strong> on webhook, erasure, graph-build events — distinct KPI namespace</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>X-Elapsed-Ms response header</strong> on cascade — latency visible in browser DevTools</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>requestId on every 200</strong> — correlatable across App Insights distributed traces</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Adaptive sampling disabled</strong> — 100% of custom events captured, no KPI loss</span></div>
+  </div>
+
+  <div class="scale-card">
+    <h4>🏗️ Infrastructure as Code</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Bicep IaC</strong> — infra/main.bicep defines all Azure resources declaratively</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Idempotent tenant setup</strong> — scripts/setup-tenant.ts: create 6 AAD users, flush + re-seed, verify health</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>--dry-run + --reset flags</strong> — safe preview before tenant mutation</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Dockerfile</strong> — multi-stage .NET 9 build, src/api/Dockerfile</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Scale 0 → N</strong> — ACA horizontal scale on request volume; no shared state in API (TokenCache is ACA-local)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Secrets via env</strong> — CLIENT_SECRET, AZURE_STORAGE_CONN never in source; ACA secrets injection</span></div>
+  </div>
+
+  <div class="scale-card">
+    <h4>🎯 Product SLAs</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>D-001 metric 2: &lt;5 min</strong> — ExtractionPollingService guarantees ≤ 5 min for active users</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>&lt;30s webhook path</strong> — WebhookHandler triggers immediate extraction on Graph notification</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Cascade in &lt;2s</strong> — CascadeSimulator BFS, in-memory; X-Elapsed-Ms measured on every call</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>3 replan options</strong> — guaranteed by ReplanGenerator (A/B/C with confidence scores)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>1-click approval</strong> — ApprovalCard.tsx fires POST /approvals + calendar block in one tap</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>Zero blocking on GET</strong> — commitments list never waits for extraction; fire-and-forget pattern</span></div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 7 — PSYCHOLOGY & MOTIVATION LAYER
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">07 &nbsp; Psychology &amp; Motivation Layer (P-27)</div>
+<p style="font-size: 11px; color: var(--text-dim); margin-bottom: 14px;">
+  Behavioral science is first-class infrastructure — not a UI afterthought.
+  14 frameworks implemented in the constitution; 6 of them wired into live components.
+</p>
+
+<div class="psych-grid">
+  <div class="psych-card">
+    <h5>🎯 Self-Determination Theory</h5>
+    <p>Competency levels (Novice→Expert) grow with delivery score. Users see progress, not tasks.</p>
+  </div>
+  <div class="psych-card">
+    <h5>📈 Progress Principle</h5>
+    <p>DeliveryScore with previous-period comparison. StreakDays displayed. Small wins surface.</p>
+  </div>
+  <div class="psych-card">
+    <h5>⚠️ Loss Aversion</h5>
+    <p>Cascade view frames delay as "commitments at risk" — loss framing drives action faster than gain framing.</p>
+  </div>
+  <div class="psych-card">
+    <h5>🔗 Fogg Behavior Model</h5>
+    <p>1-click approval minimizes friction at peak motivation. ApprovalCard.tsx is 1 tap.</p>
+  </div>
+  <div class="psych-card">
+    <h5>🌊 @react-spring/web</h5>
+    <p>Stagger animations on cascade items. Progress bar springs. Micro-animations signal causality.</p>
+  </div>
+  <div class="psych-card">
+    <h5>🎰 Variable Ratio Reinforcement</h5>
+    <p>CascadeHealthRate + XP grant unpredictable rewards for on-time closes. Habit-loop inducing.</p>
+  </div>
+  <div class="psych-card">
+    <h5>🏁 Completion Bias</h5>
+    <p>Eisenhower priority labels + impact score make "what to finish next" unambiguous — reduces open-loop anxiety.</p>
+  </div>
+  <div class="psych-card">
+    <h5>🧩 Autonomy Preservation</h5>
+    <p>Approve / Edit / Skip — the agent always asks, never acts. Human is in the loop for every action.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 8 — GOVERNANCE (SENTINEL + SPECKIT)
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">08 &nbsp; Agent Governance (Sentinel · Speckit)</div>
+
+<div class="two-col">
+  <div class="scale-card">
+    <h4>📋 Speckit Governance Artifacts</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><code style="font-size:10px">.agents/commit-fhl/spec.md</code> — product spec (stable, v1.0)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><code style="font-size:10px">plan.md</code> — architecture plan with AS-BUILT divergences (DA-005)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><code style="font-size:10px">tasks.md</code> — 46 tasks across 5 days, T-001–T-043; all tagged [Agent: X]</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><code style="font-size:10px">decisions.md</code> — D-001/D-002/D-003/D-007/DA-001–DA-005 all resolved</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><code style="font-size:10px">SESSION.md</code> — current agent state, day log, next task, blockers</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><code style="font-size:10px">sentinel-log.md</code> — 2 runs, 0 violations; P-31 non-skippable protocol</span></div>
+  </div>
+
+  <div class="scale-card">
+    <h4>🛡️ Constitution (v1.4.0)</h4>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>P-01–P-27</strong> — 27 constitutional principles governing all agent behaviour</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>P-05 Right-to-Erasure</strong> — wired into DELETE /users/{userId}/data endpoint</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>P-27 Psychology Layer</strong> — 14 behavioral science frameworks, micro-animation specs</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>P-31 Sentinel</strong> — 4-phase non-skippable verification at every session end</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>6 agent role cards</strong> — Router, Forge, Canvas, Shield, Lens, Seed (ux-psychology.md)</span></div>
+    <div class="scale-item"><span class="scale-check">✓</span><span class="scale-item-text"><strong>decisions.md pattern</strong> — agents write pending, humans fill answers, never re-asked</span></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 9 — SPRINT BUILD TIMELINE
+═══════════════════════════════════════════════════════════ -->
+<div class="section-title">09 &nbsp; Sprint Build Timeline (5-Day FHL)</div>
+
+<div class="timeline">
+  <div class="tl-step">
+    <div class="tl-day">Day 1</div>
+    <div class="tl-title">Foundation</div>
+    <div class="tl-detail">C# API skeleton · Azure infra (Bicep) · Table Storage · health endpoint · seed script</div>
+    <div class="tl-status tl-done">✓ Complete</div>
+  </div>
+  <div class="tl-step">
+    <div class="tl-day">Day 2</div>
+    <div class="tl-title">Extraction</div>
+    <div class="tl-detail">4 extractors · NLP pipeline (GPT-4o) · dedup · Eisenhower scorer · /extract endpoint</div>
+    <div class="tl-status tl-done">✓ Complete</div>
+  </div>
+  <div class="tl-step">
+    <div class="tl-day">Day 3</div>
+    <div class="tl-title">Graph + Cascade</div>
+    <div class="tl-detail">DependencyLinker · CascadeSimulator (BFS) · ImpactScorer · ReplanGenerator · CommitPane UI</div>
+    <div class="tl-status tl-done">✓ Complete</div>
+  </div>
+  <div class="tl-step">
+    <div class="tl-day">Day 4</div>
+    <div class="tl-title">Agents + Psychology</div>
+    <div class="tl-detail">Execution agents · MotivationService · psychology layer · 66 xUnit tests · demo seed (24 items)</div>
+    <div class="tl-status tl-done">✓ Complete</div>
+  </div>
+  <div class="tl-step">
+    <div class="tl-day">Day 5</div>
+    <div class="tl-title">Live + Demo Polish</div>
+    <div class="tl-detail">TokenCache · ExtractionOrchestrator · PollingService · Webhook trigger · team labels UI · demo scripts</div>
+    <div class="tl-status tl-done">✓ Complete</div>
+  </div>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════════════════ -->
+<div style="display: flex; align-items: center; justify-content: space-between; color: var(--dim); font-size: 10px; flex-wrap: wrap; gap: 8px;">
+  <div>
+    <strong style="color: var(--text-dim)">Commit FHL</strong> ·
+    Tenant: 7k2cc2 (91b9767c-6b0a-4b0b-bd4d-e08a6383426c) ·
+    API: commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io ·
+    Generated: 2026-03-02
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <span class="badge badge-green">Build: ✓ 0 errors</span>
+    <span class="badge badge-blue">Tests: 66 passing</span>
+    <span class="badge badge-amber">Sentinel: 2 runs · 0 violations</span>
+  </div>
+</div>
+
+</body>
+</html>
