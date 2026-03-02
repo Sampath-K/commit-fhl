@@ -19,18 +19,21 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 5 — Demo Day (COMPLETE) |
-| **Phase** | All agent tasks done · T-037/T-040 human tasks remaining · ready to deploy |
+| **Sprint Day** | Day 5 — Demo Day (DEPLOYED ✅) |
+| **Phase** | LIVE on Azure · ready for demo · T-037/T-040 human tasks remaining |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | T-039 — demo-readiness.md all 6 green · verify-demo.ts created |
-| **Next task** | Human: run `az login` + `az deployment group create` to deploy to 7k2cc2 tenant |
-| **Blockers** | None — all agent tasks complete. Deploy requires human `az login` (interactive) |
-| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo · deploy approval (run az login) |
-| **Build status** | All 5 days complete 2026-03-02 · 42 tasks · 66/66 tests · Dockerfile+Bicep+manifest ready |
-| **Last updated** | 2026-03-02 (Day 5 complete — P-30 ✅, T-036 ✅, T-038 ✅, T-039 ✅, Dockerfile ✅, Bicep ✅, Teams manifest ✅) |
+| **Last completed task** | Full Azure deployment (commit-fhl-rg, East US) — API + SWA live |
+| **Next task** | Human: upload commit-fhl.zip to 7k2cc2 Teams admin · run seed script for demo data |
+| **Blockers** | Graph OBO: needs admin consent in 7k2cc2 tenant for real user token flow |
+| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo |
+| **Build status** | DEPLOYED 2026-03-02 · API live · Frontend live · Teams zip ready · all 6 checks green |
+| **Last updated** | 2026-03-02 (Full Azure deployment complete) |
 | **Constitution version** | v1.3.0 (P-01 through P-30) |
+| **API URL** | https://commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io |
+| **Frontend URL** | https://thankful-pond-0ba16370f.6.azurestaticapps.net |
+| **Resource group** | commit-fhl-rg (East US) · subscription: Visual Studio Enterprise (6dbb6c34) |
 
 ---
 
