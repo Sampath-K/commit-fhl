@@ -19,18 +19,18 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 
 | Field | Value |
 |-------|-------|
-| **Sprint Day** | Day 5 — Demo Day (active) |
-| **Phase** | T-035 done · T-036/T-038/T-039 remaining · demo at 4PM |
+| **Sprint Day** | Day 5 — Demo Day (COMPLETE) |
+| **Phase** | All agent tasks done · T-037/T-040 human tasks remaining · ready to deploy |
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | T-035 — 15 integration tests (66/66 total green) · commit 93a2267 |
-| **Next task** | T-036 (Seed: load demo env) → T-038 (Forge: perf pass) → T-039 (Seed: smoke test) |
-| **Blockers** | D-003 — Azure OpenAI endpoint/key needed before T-011 (NLP pipeline). Add to `.env` |
-| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo |
-| **Build status** | All 4 days complete 2026-03-01 (51 min) · 39 tasks · 66/66 tests · ~9500 LOC |
-| **Last updated** | 2026-03-02 (Day 5 active — T-C06 ✅, T-035 ✅) |
-| **Constitution version** | v1.2.0 (P-01 through P-29) |
+| **Last completed task** | T-039 — demo-readiness.md all 6 green · verify-demo.ts created |
+| **Next task** | Human: run `az login` + `az deployment group create` to deploy to 7k2cc2 tenant |
+| **Blockers** | None — all agent tasks complete. Deploy requires human `az login` (interactive) |
+| **Human decisions needed** | T-037 demo script (D-007) · T-040 4PM demo · deploy approval (run az login) |
+| **Build status** | All 5 days complete 2026-03-02 · 42 tasks · 66/66 tests · Dockerfile+Bicep+manifest ready |
+| **Last updated** | 2026-03-02 (Day 5 complete — P-30 ✅, T-036 ✅, T-038 ✅, T-039 ✅, Dockerfile ✅, Bicep ✅, Teams manifest ✅) |
+| **Constitution version** | v1.3.0 (P-01 through P-30) |
 
 ---
 
@@ -90,6 +90,15 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Psychology components** | `src/app/src/components/psychology/` | ✅ 8 components: DeliveryScore, StreakBadge, CompetencyLevel, CelebrationLayer, MorningDigest, InsightCard, FocusMode, MotivationalNudge |
 | **CascadeView** | `src/app/src/components/core/CascadeView.tsx` | ✅ Stagger reveal, at-risk highlights, replan panel |
 | **ApprovalCard** | `src/app/src/components/core/ApprovalCard.tsx` | ✅ Approve/Edit/Skip, fires /api/v1/approvals |
+| **Constitution** | `.specify/memory/constitution.md` | ✅ v1.3.0 — P-01 through P-30 |
+| **Timing logs** | `NlpPipeline.cs`, `CascadeSimulator.cs`, `AdaptiveCardBuilder.cs` | ✅ Stopwatch on all 3 hot paths |
+| **X-Elapsed-Ms** | `Program.cs` /graph/cascade route | ✅ Response header for browser/curl verification |
+| **Dockerfile** | `src/api/Dockerfile` | ✅ .NET 10 multi-stage, non-root user |
+| **Bicep infra** | `infra/main.bicep` + `infra/parameters.json` | ✅ Storage + ACR + Container Apps + Static Web Apps |
+| **Teams manifest** | `appPackage/manifest.json` + color.png + outline.png | ✅ Ready to zip + upload to 7k2cc2 catalog |
+| **CI/CD scaffold** | `.github/workflows/deploy.yml` | ✅ Scaffold ready (activate post-demo: remove if:false) |
+| **Smoke tests** | `scripts/verify-demo.ts` | ✅ 6 checks covering all feature areas |
+| **Demo readiness** | `.agents/commit-fhl/demo-readiness.md` | ✅ All 6 green |
 
 ---
 
