@@ -2,49 +2,58 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using CommitApi.Config;
-using Microsoft.Extensions.Primitives;
+using CommitApi.Services;
 
 namespace CommitApi.Webhooks;
 
 /// <summary>
 /// Handles incoming Microsoft Graph change notification webhook payloads.
-/// Validates HMAC-SHA256 signatures before processing any payload.
+///
+/// When a notification arrives for a user whose OBO token is in the TokenCache,
+/// this handler immediately triggers extraction — giving &lt; 30s latency for Teams
+/// messages and Outlook emails (vs the 5-minute polling cycle).
+///
+/// Flow:
+///   1. Validate HMAC-SHA256 signature (anti-tampering)
+///   2. Validate clientState (anti-replay)
+///   3. Resolve subscriptionId → userId via TokenCache
+///   4. If user has a cached token → trigger ExtractionOrchestrator immediately
+///   5. Emit telemetry
 /// </summary>
 public sealed class WebhookHandler
 {
-    private readonly ILogger<WebhookHandler> _logger;
-    private readonly IAppInsightsClient _insights;
-    private readonly string _clientState;
-
-    // Graph sends the signature in this header
-    private const string SignatureHeader = "X-Microsoft-Gryffindor-Signature";
+    private readonly ILogger<WebhookHandler>   _logger;
+    private readonly IAppInsightsClient        _insights;
+    private readonly string                    _clientState;
+    private readonly TokenCache                _tokenCache;
+    private readonly IExtractionOrchestrator   _orchestrator;
 
     public WebhookHandler(
-        ILogger<WebhookHandler> logger,
-        IAppInsightsClient insights,
-        string clientState)
+        ILogger<WebhookHandler>   logger,
+        IAppInsightsClient        insights,
+        string                    clientState,
+        TokenCache                tokenCache,
+        IExtractionOrchestrator   orchestrator)
     {
-        _logger      = logger;
-        _insights    = insights;
-        _clientState = clientState;
+        _logger       = logger;
+        _insights     = insights;
+        _clientState  = clientState;
+        _tokenCache   = tokenCache;
+        _orchestrator = orchestrator;
     }
 
     /// <summary>
     /// Validates the HMAC-SHA256 signature on an incoming webhook payload.
     /// Microsoft Graph signs the raw body with the subscription's client state as the key.
     /// </summary>
-    /// <param name="rawBody">Raw UTF-8 request body bytes.</param>
-    /// <param name="signatureHeader">Value of X-Microsoft-Gryffindor-Signature header.</param>
-    /// <returns>True if the signature is valid; false if tampered or missing.</returns>
     public bool ValidateSignature(byte[] rawBody, string? signatureHeader)
     {
         if (string.IsNullOrEmpty(signatureHeader)) return false;
 
-        var keyBytes  = Encoding.UTF8.GetBytes(_clientState);
-        var expected  = HMACSHA256.HashData(keyBytes, rawBody);
+        var keyBytes    = Encoding.UTF8.GetBytes(_clientState);
+        var expected    = HMACSHA256.HashData(keyBytes, rawBody);
         var expectedB64 = Convert.ToBase64String(expected);
 
-        // Constant-time compare to prevent timing attacks
         return CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(expectedB64),
             Encoding.UTF8.GetBytes(signatureHeader));
@@ -52,16 +61,17 @@ public sealed class WebhookHandler
 
     /// <summary>
     /// Processes a validated Graph change notification payload.
-    /// Logs each notification and emits a telemetry event.
+    /// For each notification, resolves the user and triggers extraction if a token is available.
     /// </summary>
-    /// <param name="body">Validated JSON body of the webhook notification.</param>
-    /// <param name="ct">Cancellation token.</param>
     public async Task HandleAsync(string body, CancellationToken ct = default)
     {
         var payload = JsonDocument.Parse(body);
         var notifications = payload.RootElement
             .GetProperty("value")
             .EnumerateArray();
+
+        // Deduplicate: one extraction per user even if multiple notifications arrive in the same batch
+        var usersToExtract = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var notification in notifications)
         {
@@ -99,8 +109,50 @@ public sealed class WebhookHandler
                     ["changeType"]     = changeType ?? "",
                     ["subscriptionId"] = subscriptionId ?? "",
                 });
+
+            // Resolve userId from subscriptionId → trigger extraction
+            if (subscriptionId is not null)
+            {
+                var userId = _tokenCache.GetUserIdForSubscription(subscriptionId);
+                if (userId is not null)
+                    usersToExtract.Add(userId);
+            }
         }
 
-        await Task.CompletedTask;
+        // Trigger extraction for each unique user in this webhook batch
+        if (usersToExtract.Count > 0)
+        {
+            _logger.LogInformation(
+                "Webhook: triggering immediate extraction for {Count} user(s)", usersToExtract.Count);
+
+            var extractTasks = usersToExtract.Select(async userId =>
+            {
+                var entry = _tokenCache.Get(userId);
+                if (entry is null)
+                {
+                    _logger.LogDebug(
+                        "Webhook: no valid token for user {Hash} — skipping immediate extraction",
+                        PiiScrubber.HashValue(userId));
+                    return;
+                }
+
+                try
+                {
+                    var count = await _orchestrator.ExtractAndStoreAsync(userId, entry.Token, ct);
+                    _tokenCache.MarkExtracted(userId);
+
+                    _logger.LogInformation(
+                        "Webhook-triggered extraction: {Count} new item(s) for user {Hash}",
+                        count, PiiScrubber.HashValue(userId));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Webhook-triggered extraction failed for user {Hash}", PiiScrubber.HashValue(userId));
+                }
+            });
+
+            await Task.WhenAll(extractTasks);
+        }
     }
 }

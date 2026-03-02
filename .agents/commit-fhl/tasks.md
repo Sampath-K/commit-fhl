@@ -111,7 +111,8 @@
 ### Day 5 — Real-User Demo Tenant (added 2026-03-02 per D-008)
 
 - [x] **T-041** `[Agent: Seed]` Real user OIDs seed update — `scripts/setup-tenant.ts` (fully automated, idempotent): creates 6 AAD users via Graph API, detects tenant domain, flushes old data, re-seeds with real OIDs. `scripts/seed-real-users.ts` (OID override via env vars). `docs/real-user-setup.md` (3-command TL;DR, admin consent guide, Teams app install, troubleshooting). ✅ 2026-03-02
-- [x] **T-042** `[Agent: Forge+Seed]` Live commitment arrival demo — `scripts/demo-live-arrival.ts`: injects "Address Q1 latency regression" commitment via API with 60s countdown (configurable --delay, --immediate). Commitment has impact 72, blocks rbs-bcp-003, source=Teams standup 2min ago. Demo script verbal cue included. ✅ 2026-03-02
+- [x] **T-042** `[Agent: Forge+Seed]` Live commitment arrival demo — `scripts/demo-live-arrival.ts`
+- [x] **T-043** `[Agent: Forge]` Live extraction pipeline — `TokenCache.cs` (OBO token persistence, subscriptionId→userId mapping), `ExtractionOrchestrator.cs` (shared extract→NLP→dedup→store logic), `ExtractionPollingService.cs` (5-min BackgroundService for all active users), WebhookHandler enhanced (webhook fires → immediate extraction for matching user), GET /commitments auto-triggers extraction (fire-and-forget, 3-min freshness), POST /extract simplified to 6 lines, POST /subscriptions maps subscriptionIds. Build: 0 errors 0 warnings. ✅ 2026-03-02: injects "Address Q1 latency regression" commitment via API with 60s countdown (configurable --delay, --immediate). Commitment has impact 72, blocks rbs-bcp-003, source=Teams standup 2min ago. Demo script verbal cue included. ✅ 2026-03-02
 
 ---
 

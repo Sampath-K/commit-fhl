@@ -57,7 +57,9 @@ builder.Services.AddSingleton(sp =>
     new WebhookHandler(
         sp.GetRequiredService<ILogger<WebhookHandler>>(),
         sp.GetRequiredService<IAppInsightsClient>(),
-        clientState));
+        clientState,
+        sp.GetRequiredService<TokenCache>(),
+        sp.GetRequiredService<IExtractionOrchestrator>()));
 
 // ─── HttpClient factory (Graph + ADO) ─────────────────────────────────────────
 builder.Services.AddHttpClient("graph");
@@ -83,6 +85,11 @@ builder.Services.AddSingleton<IReplanGenerator, ReplanGenerator>();
 
 // ─── Risk Detector (T-024) — 15-min background polling ───────────────────────
 builder.Services.AddHostedService<RiskDetector>();
+
+// ─── Token Cache + Extraction Orchestrator + Polling Service (T-043) ─────────
+builder.Services.AddSingleton<TokenCache>();
+builder.Services.AddSingleton<IExtractionOrchestrator, ExtractionOrchestrator>();
+builder.Services.AddHostedService<ExtractionPollingService>();
 
 // ─── Execution Agents (T-028, T-029, T-030, T-031, T-032) ────────────────────
 builder.Services.AddSingleton<AdaptiveCardBuilder>();
@@ -196,8 +203,41 @@ api.MapGet("/health", async (HttpContext http, IGraphClientFactory graphFactory)
 .WithOpenApi();
 
 // GET /api/v1/commitments/{userId}
-api.MapGet("/commitments/{userId}", async (string userId, ICommitmentRepository repo) =>
+// Auto-triggers background extraction if the user has a valid cached token and hasn't been
+// extracted in the last 3 minutes — ensures the pane is always fresh on load.
+api.MapGet("/commitments/{userId}", async (
+    string userId,
+    HttpContext http,
+    ICommitmentRepository repo,
+    TokenCache tokenCache,
+    IExtractionOrchestrator orchestrator) =>
 {
+    // Store / refresh token if present — keeps the cache alive while the pane is open
+    var token = ExtractBearerToken(http);
+    if (token is not null)
+    {
+        tokenCache.Store(userId, token);
+        RiskDetector.RegisteredUsers[userId] = DateTimeOffset.UtcNow;
+
+        // Fire-and-forget extraction if stale (> 3 min since last run)
+        var entry = tokenCache.Get(userId);
+        var shouldExtract = entry?.LastExtracted is null ||
+            DateTimeOffset.UtcNow - entry.LastExtracted.Value > TimeSpan.FromMinutes(3);
+
+        if (shouldExtract)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await orchestrator.ExtractAndStoreAsync(userId, token);
+                    tokenCache.MarkExtracted(userId);
+                }
+                catch { /* swallow — extraction failure must not break the GET response */ }
+            });
+        }
+    }
+
     var entities = await repo.ListByOwnerAsync(userId);
     var dtos     = entities.Select(CommitmentResponse.From).ToList();
     return Results.Ok(new { success = true, data = dtos, requestId = Guid.NewGuid() });
@@ -292,29 +332,37 @@ api.MapPost("/webhook", async (HttpRequest req, WebhookHandler handler) =>
 .WithOpenApi();
 
 // POST /api/v1/subscriptions — register Graph change notification subscriptions
-api.MapPost("/subscriptions", async (HttpContext http, ISubscriptionManager subs) =>
+// Stores subscriptionId → userId mapping in TokenCache so webhook-triggered extraction works.
+api.MapPost("/subscriptions", async (HttpContext http, ISubscriptionManager subs, TokenCache tokenCache) =>
 {
     var token = ExtractBearerToken(http)
         ?? throw new AuthException("Authorization header required");
 
+    // Resolve userId from JWT oid claim and cache the token
+    var userId = TokenCache.ExtractUserId(token);
+    if (userId is not null)
+        tokenCache.Store(userId, token);
+
     var ids = await subs.EnsureSubscriptionsAsync(token);
+
+    // Map each new subscriptionId → userId for webhook-triggered extraction
+    if (userId is not null)
+    {
+        foreach (var subscriptionId in ids)
+            tokenCache.MapSubscription(subscriptionId, userId);
+    }
+
     return Results.Ok(new { success = true, subscriptionIds = ids });
 })
 .WithName("EnsureSubscriptions")
 .WithOpenApi();
 
-// POST /api/v1/extract — trigger signal extraction for the caller (T-010–T-016)
+// POST /api/v1/extract — trigger signal extraction for the caller (T-010–T-016, T-043)
+// Delegates to ExtractionOrchestrator and caches the token for future background polling.
 api.MapPost("/extract", async (
     HttpContext http,
-    ITranscriptExtractor transcripts,
-    IChatExtractor chats,
-    IEmailExtractor emails,
-    IAdoExtractor ado,
-    INlpPipeline nlp,
-    IDeduplicationService dedup,
-    IEisenhowerScorer scorer,
-    ICommitmentRepository repo,
-    IAppInsightsClient insights) =>
+    IExtractionOrchestrator orchestrator,
+    TokenCache tokenCache) =>
 {
     var token  = ExtractBearerToken(http)
         ?? throw new AuthException("Authorization header required");
@@ -322,73 +370,18 @@ api.MapPost("/extract", async (
     if (string.IsNullOrEmpty(userId))
         throw new ValidationException("userId query parameter is required");
 
-    // ── Run all four extractors concurrently ──────────────────────────────────
-    var t1 = transcripts.GetChunksAsync(token);
-    var t2 = chats.ExtractAsync(token);
-    var t3 = emails.ExtractAsync(token);
-    var t4 = ado.ExtractAsync(userId, token);
-    await Task.WhenAll(t1, t2, t3, t4);
-    var transcriptChunks = t1.Result;
-    var chatRaw          = t2.Result;
-    var emailRaw         = t3.Result;
-    var adoRaw           = t4.Result;
-
-    // ── NLP pipeline on transcript chunks ────────────────────────────────────
-    var transcriptRaw = await nlp.ExtractFromChunksAsync(transcriptChunks);
-
-    // ── Merge all sources ─────────────────────────────────────────────────────
-    var allRaw = transcriptRaw
-        .Concat(chatRaw)
-        .Concat(emailRaw)
-        .Concat(adoRaw)
-        .ToList();
-
-    // ── Deduplicate ────────────────────────────────────────────────────────────
-    var deduped = dedup.Deduplicate(allRaw);
-
-    // ── Persist with Eisenhower priority ─────────────────────────────────────
-    var upserted = 0;
-    foreach (var raw in deduped)
-    {
-        var priority = scorer.Score(raw);
-        var entity = new CommitmentEntity
-        {
-            PartitionKey      = userId,
-            RowKey            = Guid.NewGuid().ToString(),
-            Title             = raw.Title,
-            Owner             = userId,
-            WatchersJson      = JsonSerializer.Serialize(raw.WatcherUserIds),
-            SourceType        = raw.SourceType.ToString(),
-            SourceUrl         = raw.SourceUrl,
-            SourceTimestamp   = raw.ExtractedAt,
-            CommittedAt       = raw.ExtractedAt,
-            DueAt             = raw.DueAt,
-            Priority          = priority,
-            Status            = "pending",
-            ImpactScore       = 0,  // scored by cascade engine (Day 3)
-        };
-
-        await repo.UpsertAsync(entity);
-        upserted++;
-    }
-
-    insights.TrackUserAction("extract", PiiScrubber.HashValue(userId), "commitments", new Dictionary<string, string>
-    {
-        ["raw"]     = allRaw.Count.ToString(),
-        ["deduped"] = deduped.Count.ToString(),
-        ["sources"] = "transcript,chat,email,ado"
-    });
-
-    // ── Register user for risk detection ─────────────────────────────────────
+    // Cache token — enables ExtractionPollingService + webhook-triggered extraction
+    tokenCache.Store(userId, token);
     RiskDetector.RegisteredUsers[userId] = DateTimeOffset.UtcNow;
+
+    var upserted = await orchestrator.ExtractAndStoreAsync(userId, token);
+    tokenCache.MarkExtracted(userId);
 
     return Results.Ok(new
     {
-        success    = true,
-        extracted  = allRaw.Count,
-        deduped    = deduped.Count,
+        success   = true,
         upserted,
-        requestId  = http.TraceIdentifier
+        requestId = http.TraceIdentifier
     });
 })
 .WithName("ExtractCommitments")
