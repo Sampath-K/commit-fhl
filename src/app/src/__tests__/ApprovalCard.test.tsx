@@ -360,7 +360,7 @@ describe('ApprovalCard — recipients row', () => {
   it('shows one badge per recipient', () => {
     const draft = makeDraft({ recipients: ['Marcus Johnson', 'Priya Sharma'] });
     render(<ApprovalCard commitmentId="rbs-001" userId={TEST_USER_ID} draft={draft} />);
-    expect(screen.getAllByText(/Marcus Johnson|Priya Singh/).length).toBe(2);
+    expect(screen.getAllByText(/Marcus Johnson|Priya Sharma/).length).toBe(2);
   });
 
   it('shows a single recipient correctly', () => {

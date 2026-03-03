@@ -403,7 +403,7 @@ describe('CascadeView — ApprovalCard trigger after replan option click', () =>
     );
   });
 
-  it('ApprovalCard shows named recipients (Marcus Johnson, Priya Singh, David Chen)', async () => {
+  it('ApprovalCard shows named recipients (Marcus Johnson, Priya Sharma, David Park)', async () => {
     await setupWithReplanOptions();
     await act(async () => {
       fireEvent.click(screen.getByText('C. Clean Slip + Auto-Comms'));
