@@ -1,7 +1,7 @@
 # Commit FHL — Project Constitution
-> **Version**: 1.3.0
+> **Version**: 1.5.0
 > **Status**: Ratified
-> **Last amended**: 2026-03-02
+> **Last amended**: 2026-03-03
 > All agents must read and follow every principle. Amendments require human approval + version bump.
 
 ---
@@ -15,6 +15,7 @@
 | 1.2.0 | 2026-03-01 | Backend changed to C# ASP.NET Core Minimal API (.NET 9) + xUnit; added P-28 (C# backend conventions) and P-29 (live reporting cadence); updated P-20, P-21, P-24 |
 | 1.3.0 | 2026-03-02 | Added P-30 (deployment cadence — deployed to tenant is the definition of done) |
 | 1.4.0 | 2026-03-02 | Added P-31 (Sentinel integrity protocol — non-skippable end-of-session verification) |
+| 1.5.0 | 2026-03-03 | Added P-32 (Zero Human Input protocol), P-33 (Human-Agent Co-Team Contract), P-34 (Project Template Protocol); expanded agent roster to 9 (added Recon + Oracle) |
 
 ---
 
@@ -194,18 +195,22 @@ Full localization from day 1.
 
 ### P-18 — Multi-Agent Architecture
 
-This project uses a specialized 5-agent + Router team. Each agent owns a distinct slice of the codebase.
+This project uses a 9-agent team (see P-35 for full roster and activation triggers).
+Each agent owns a distinct slice of the codebase. One agent may play multiple roles in a session.
 
 **Agent roster:**
 
-| Agent | Role | Owns |
-|-------|------|------|
-| **Router** | PM + Tech Lead | `.specify/`, `.agents/` governance |
-| **Forge** | Backend Engineer | `api/src/**` |
-| **Canvas** | Frontend Engineer | `app/src/**`, `src/locales/**` |
-| **Shield** | Platform/DevOps | `infra/**`, `.github/**`, `env/**` |
-| **Lens** | QA/SDET | `tests/**` |
-| **Seed** | Demo/Data | `scripts/**` |
+| Agent | Role | Owns | Phase |
+|-------|------|------|-------|
+| **Router** | PM + Tech Lead | `.specify/`, `.agents/` governance | All |
+| **Forge** | Backend Engineer | `src/api/**` | 4 |
+| **Canvas** | Frontend Engineer | `src/app/**`, `src/locales/**` | 4 |
+| **Shield** | Platform/DevOps | `infra/**`, `.github/**` | 3–4 |
+| **Lens** | QA/SDET | `tests/**` | 4 |
+| **Seed** | Demo/Data | `scripts/**` | 4 end |
+| **Sentinel** | Integrity verifier | Governance review | End of session |
+| **Recon** | Research analyst | `.specify/memory/research/` | 1–2 |
+| **Oracle** | Analytics engineer | `scripts/analytics/`, dashboards | 4 live |
 
 **Inter-agent communication**: `.specify/memory/agent-inbox.md`
 - Post a message when you need another agent's output before proceeding
@@ -609,6 +614,150 @@ start of any session where the previous session did not run Sentinel.
 
 **This is a high-stakes project.** A stale report read by a judge or VP during demo is a defect,
 not an oversight. Sentinel exists to ensure that trust in these documents is earned, not assumed.
+
+---
+
+### P-32 — Zero Human Input (ZHIN) Protocol
+
+The agent team's primary operating target is **zero human inputs** after the initial spec is approved.
+Every blocker, ambiguity, and implementation decision is the agent's responsibility to resolve first.
+
+**Agent self-resolution order** (exhausted before escalating):
+
+1. **Check governance files**: Is it already decided in `decisions.md`? Does a constitution principle answer it?
+2. **Try the direct path**: Can scripting, an API call, or a known tool pattern resolve it?
+3. **Try an alternative approach**: Can a different implementation achieve the same outcome without the blocker?
+4. **Check environment state**: Is the resource there but discovered differently? (e.g., list resources rather than guessing the name)
+5. **Escalate only if all above fail** — and when escalating, surface a concrete solution for the human to choose from, not an open question.
+
+**Human interaction is reserved for:**
+- Business/product strategy decisions (what to build, not how)
+- Ethics, security, and legal review gates
+- External system credentials that cannot be scripted
+- Physical actions (tenant admin console clicks, hardware, legal signatures)
+
+**Measurement**: Track the ratio of human-escalated vs. self-resolved blockers in SESSION.md.
+Target: ≥ 90% self-resolved within a sprint day.
+
+---
+
+### P-33 — Human-Agent Co-Team Contract
+
+This project runs as a **human-agent co-team**, not as a human supervising an agent tool.
+The contract below governs who owns what. Crossing these boundaries requires explicit negotiation.
+
+**Human half of the team owns:**
+
+| Domain | Examples |
+|--------|---------|
+| Strategic vision | What problem to solve, what success looks like, go/no-go decisions |
+| Stakeholder relationships | Executive alignment, demo audience, customer conversations |
+| Business/ethics gates | Privacy decisions, legal review, communication tone approval |
+| Credentials & secrets | AAD app registrations, API keys, tenant admin actions |
+| Final demo and presentation | Demo narrative, live talking points, live Q&A |
+
+**Agent half of the team owns:**
+
+| Domain | Examples |
+|--------|---------|
+| Architecture and implementation | All source code, infrastructure-as-code, build scripts |
+| Quality and testing | Test authorship, coverage, mutation testing, E2E scripts |
+| Deployment | Build + push + container update + frontend deploy |
+| Governance and reporting | SESSION.md, tasks.md, dashboards, reports, Sentinel verification |
+| Unblocking autonomously | Scripting credential retrieval, resource discovery, self-healing |
+
+**The contract is NOT delegation.** It is co-ownership.
+The human is an **active team member** who contributes domain expertise, decisions, and validation —
+not a passive approver of agent output.
+
+**Weekly cadence for human participation:**
+- Daily: Read SESSION.md (5 min) — know what was shipped
+- Mid-sprint: Review demo readiness (30 min) — course-correct if needed
+- End-of-sprint: Live demo + retrospective (1h) — celebrate + extract learnings
+
+---
+
+### P-34 — Project Template Protocol
+
+Commit FHL is the **reference implementation** for the human-agent co-team pattern.
+Any new project built using this pattern must replicate the following governance kit:
+
+**Minimum governance kit** (copy from `.specify/` and `.agents/` in this repo):
+
+| File | Purpose |
+|------|---------|
+| `.specify/memory/constitution.md` | Engineering principles — adapt P-01 through P-27 to project; keep P-32/P-33/P-34 |
+| `.specify/memory/agent-roles/` | All 9 role cards — customize file ownership per project |
+| `.specify/memory/agent-inbox.md` | Inter-agent communication channel |
+| `.specify/memory/tech-debt.md` | Tech debt tracker |
+| `.agents/{project}/SESSION.md` | Current state — every session reads this first |
+| `.agents/{project}/spec.md` | What we're building (human-authored) |
+| `.agents/{project}/plan.md` | Architecture (agent-authored after spec is approved) |
+| `.agents/{project}/tasks.md` | Full task list with `[x]` / `[~]` / `[ ]` / `[H]` status |
+| `.agents/{project}/decisions.md` | Human decisions (answered) + pending (blocking) |
+| `.agents/{project}/AGENT_INSTRUCTIONS.md` | Project-specific boot instructions for agents |
+
+**4-phase project lifecycle** (proven on Commit FHL):
+
+```
+Phase 1 — SPECIFY  (1-2h):  Human describes the product. /speckit.specify + /speckit.clarify
+Phase 2 — PLAN     (2-4h):  Agent architects. /speckit.plan → plan.md + decisions.md
+Phase 3 — TASKS    (1h):    Agent breaks down work. /speckit.tasks → tasks.md (all [H] tagged)
+Phase 4 — IMPLEMENT (days): Agent builds. /speckit.implement — resumes across sessions.
+```
+
+**Human time investment target**: ≤ 2h/day for a 5-day sprint (spec, pivots, demo).
+**Agent time investment**: All remaining work.
+
+**What makes this template portable:**
+- Agent roles are domain-agnostic — swap file ownership, keep the governance model
+- Constitution principles P-01 through P-15 are infrastructure-neutral — adapt to any stack
+- speckit workflow is stack-neutral — runs on any project with a natural language spec
+- ZHIN protocol (P-32) keeps humans out of the implementation loop without losing oversight
+
+**Template repo**: `https://github.com/Sampath-K/commit-fhl` is the reference.
+When starting a new project: fork the `.specify/` and `.agents/` directory structure,
+update the spec, re-run speckit.plan and speckit.tasks, then /speckit.implement.
+
+---
+
+### P-35 — Expanded Agent Roster
+
+The baseline agent roster has expanded from 7 to 9 to cover the full project lifecycle:
+
+| Agent | Role | Activates |
+|-------|------|----------|
+| **Router** | PM + Tech Lead | Every phase — coordinates, routes, reviews |
+| **Forge** | Backend Engineer | Phase 4 (implement): all server-side code |
+| **Canvas** | Frontend Engineer | Phase 4 (implement): all UI code |
+| **Shield** | Platform/DevOps | Phase 3+4: infra, CI/CD, deployment |
+| **Lens** | QA/SDET | Phase 4: tests, coverage, E2E |
+| **Seed** | Demo/Data | Phase 4 end: seed scripts, demo content |
+| **Sentinel** | Integrity verifier | End of every session (P-31) |
+| **Recon** | Research analyst | Phase 1+2: market research, competitive analysis, user research |
+| **Oracle** | Analytics engineer | Phase 4+ (live): telemetry, KPIs, usage dashboards, A/B tests |
+
+**Recon responsibilities:**
+- Competitive landscape analysis for any new feature or product direction
+- User research synthesis (interviews → insights → spec input)
+- Technology research (evaluate libraries, patterns, third-party APIs before Forge commits)
+- Input to `spec.md` and `plan.md` via `.specify/memory/agent-inbox.md`
+- Owns: `.specify/memory/research/` directory
+
+**Oracle responsibilities:**
+- Telemetry dashboard implementation (`docs/analytics-dashboard.html`)
+- KPI tracking: commitments captured, resolution rate, cascade detection accuracy, approval rate
+- A/B test configuration and result analysis
+- Weekly sprint analytics report (appended to day reports)
+- Owns: `scripts/analytics/`, `docs/analytics-dashboard.html`
+
+**When to activate each agent:**
+- **Recon**: Activate before any major spec change, new feature area, or competitor concern
+- **Oracle**: Activate when the system is live in pilot and usage data is available
+- All other agents: same triggers as before (see P-18)
+
+**Single-agent sessions**: One agent playing all roles is valid. Use role cards as checklists,
+not as hard parallelism requirements. The governance model works whether there is 1 agent or 9.
 
 ---
 

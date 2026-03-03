@@ -30,7 +30,37 @@ public record RawCommitment(
     string[] WatcherUserIds,
 
     /// <summary>Short excerpt for display. Max 200 chars (P-09: no full body).</summary>
-    string SourceContext
+    string SourceContext,
+
+    /// <summary>
+    /// JSON bag of source-system identifiers used for same-source resolution (Tier 1.5).
+    /// Chat:  { "chatId", "messageId", "chatType" }
+    /// Email: { "messageId", "conversationId" }
+    /// Drive: { "itemId", "commentId" }
+    /// Null for sources with no re-queryable identifier (Transcript, ADO, Planner).
+    /// </summary>
+    string? SourceMetadata = null,
+
+    /// <summary>
+    /// Inferred project or workspace bucket this commitment belongs to.
+    /// Drive: deepest folder name from parentReference.path (e.g. "Q2 Planning")
+    /// Chat:  Teams team display name (e.g. "Platform Engineering")
+    /// Email: null (no reliable inference without user-defined rules)
+    /// Planner: plan title (e.g. "Sprint 42")
+    /// Transcript: meeting subject prefix
+    /// </summary>
+    string? ProjectContext = null,
+
+    /// <summary>
+    /// The specific artifact (file, thread, channel, meeting) that generated this commitment.
+    /// Drive:      file name ("roadmap.docx")
+    /// Chat DM/group: chat topic or participants
+    /// Chat channel:  "#channel-name"
+    /// Email:      email subject
+    /// Planner:    task title (same as Title)
+    /// Transcript: meeting subject
+    /// </summary>
+    string? ArtifactName = null
 );
 
 /// <summary>Which signal source produced a <see cref="RawCommitment"/>.</summary>
@@ -39,5 +69,7 @@ public enum CommitmentSourceType
     Transcript,
     Chat,
     Email,
-    Ado
+    Ado,
+    Drive,    // OneDrive/SharePoint Office documents (WXP)
+    Planner,  // Microsoft Planner / Loop tasks
 }

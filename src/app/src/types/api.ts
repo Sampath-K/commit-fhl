@@ -10,7 +10,7 @@
 // ─── Enumerations ─────────────────────────────────────────────────────────────
 
 /** Source system where the commitment was made */
-export type CommitmentSourceType = 'meeting' | 'chat' | 'email' | 'ado';
+export type CommitmentSourceType = 'meeting' | 'chat' | 'email' | 'ado' | 'drive' | 'planner';
 
 /** Eisenhower priority matrix quadrant */
 export type EisenhowerQuadrant =
@@ -62,6 +62,12 @@ export interface CommitmentRecord {
   lastActivity?: string; // ISO 8601
   agentDraft?: AgentDraft;
   ownerDeliveryScoreAtCreation?: number;
+  /** Human-readable explanation of how the system detected completion. Shown as the "aha moment". */
+  resolutionReason?: string;
+  /** Project or team context inferred from source (e.g. "Q2 Planning", "Engineering", team name). */
+  projectContext?: string;
+  /** Artifact name within the project (e.g. "Q2 Roadmap.docx", "#general", email subject). */
+  artifactName?: string;
 }
 
 /** Dependency edge between two commitments. */
@@ -181,6 +187,12 @@ export interface ApprovalDecision {
   commitmentId: string;
   decision: 'approve' | 'edit' | 'skip';
   editedContent?: string;
+  /** Original draft text — sent to backend for Teams message dispatch */
+  draftContent?: string;
+  /** Draft action type — backend uses this to route side effects */
+  draftActionType?: string;
+  /** Recipient display names — backend resolves OIDs for Teams send */
+  draftRecipients?: string[];
 }
 
 // ─── API Response Envelope ────────────────────────────────────────────────────

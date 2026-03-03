@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Card,
@@ -94,10 +95,12 @@ const QUADRANT_ORDER: EisenhowerQuadrant[] = [
 ];
 
 const SOURCE_ICONS: Record<string, string> = {
-  meeting: '\u{1F4F9}',
-  chat: '\u{1F4AC}',
-  email: '\u{1F4E7}',
-  ado: '\u{1F527}',
+  meeting:  '\u{1F4F9}',  // 📹
+  chat:     '\u{1F4AC}',  // 💬
+  email:    '\u{1F4E7}',  // 📧
+  ado:      '\u{1F527}',  // 🔧
+  drive:    '\u{1F4C4}',  // 📄
+  planner:  '\u{1F4CB}',  // 📋
 };
 
 interface CommitPaneProps {
@@ -185,38 +188,67 @@ function CommitCard({
             </div>
           }
           description={
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* T-019: Clickable source link */}
-              <Tooltip content={t('commitPane.card.openSource')} relationship="description">
-                <Button
-                  as="a"
-                  href={commitment.source.url || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  appearance="transparent"
-                  className={styles.sourceLink}
-                  aria-label={t('commitPane.card.openSource')}
-                >
-                  {SOURCE_ICONS[commitment.source.type] ?? '\u{1F4CC}'}
-                </Button>
-              </Tooltip>
-              {daysUntilDue !== null && (
-                <Text size={100} className={styles.sourceIcon}>
-                  {daysUntilDue < 0
-                    ? t('commitPane.card.overdue', { days: Math.abs(daysUntilDue) })
-                    : daysUntilDue === 0
-                    ? t('commitPane.card.dueToday')
-                    : t('commitPane.card.dueIn', { days: daysUntilDue })}
-                </Text>
-              )}
-              {commitment.blocks.length > 0 && (
-                <Text size={100} style={{ color: tokens.colorStatusDangerForeground1 }}>
-                  {t('commitPane.card.blocking', { count: commitment.blocks.length })}
-                </Text>
-              )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* T-019: Clickable source link */}
+                <Tooltip content={t('commitPane.card.openSource')} relationship="description">
+                  <Button
+                    as="a"
+                    href={commitment.source.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    appearance="transparent"
+                    className={styles.sourceLink}
+                    aria-label={t('commitPane.card.openSource')}
+                  >
+                    {SOURCE_ICONS[commitment.source.type] ?? '\u{1F4CC}'}
+                  </Button>
+                </Tooltip>
+                {/* Artifact name — shown when it adds context beyond the title */}
+                {commitment.artifactName && commitment.artifactName !== commitment.title && (
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3, fontStyle: 'italic' }}>
+                    {commitment.artifactName}
+                  </Text>
+                )}
+                {daysUntilDue !== null && (
+                  <Text size={100} className={styles.sourceIcon}>
+                    {daysUntilDue < 0
+                      ? t('commitPane.card.overdue', { days: Math.abs(daysUntilDue) })
+                      : daysUntilDue === 0
+                      ? t('commitPane.card.dueToday')
+                      : t('commitPane.card.dueIn', { days: daysUntilDue })}
+                  </Text>
+                )}
+                {commitment.blocks.length > 0 && (
+                  <Text size={100} style={{ color: tokens.colorStatusDangerForeground1 }}>
+                    {t('commitPane.card.blocking', { count: commitment.blocks.length })}
+                  </Text>
+                )}
+              </div>
             </div>
           }
         />
+        {/* Resolution reason — the "aha moment" shown when the system auto-resolved */}
+        {commitment.status === 'done' && commitment.resolutionReason && (
+          <div style={{
+            margin: '0 12px 10px',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            backgroundColor: tokens.colorStatusSuccessBackground1,
+            border: `1px solid ${tokens.colorStatusSuccessBorder1}`,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '6px',
+          }}>
+            <span style={{ fontSize: '13px', lineHeight: '18px' }}>✅</span>
+            <Text
+              size={100}
+              style={{ color: tokens.colorStatusSuccessForeground1, lineHeight: '18px' }}
+            >
+              {commitment.resolutionReason}
+            </Text>
+          </div>
+        )}
       </Card>
     </animated.div>
   );
@@ -224,12 +256,14 @@ function CommitCard({
 
 /**
  * Main commitment pane — Eisenhower board with Morning Digest.
+ * Supports two view modes: By Priority (Eisenhower quadrants) and By Project.
  * All strings from react-i18next (P-17). All colors from Fluent tokens (P-15).
  * Animations from @react-spring/web with reduced-motion support (P-27).
  */
 export function CommitPane({ commitments, isLoading, currentUserId, onCommitmentClick }: CommitPaneProps): JSX.Element {
   const { t } = useTranslation();
   const styles = useStyles();
+  const [viewMode, setViewMode] = useState<'priority' | 'project'>('priority');
 
   const quadrantLabels: Record<EisenhowerQuadrant, string> = {
     'urgent-important':        t('commitPane.quadrants.urgentImportant'),
@@ -251,6 +285,20 @@ export function CommitPane({ commitments, isLoading, currentUserId, onCommitment
     }
   );
 
+  // Group by projectContext for the By Project view
+  const groupedByProject = useMemo(() => {
+    const groups: Record<string, CommitmentRecord[]> = {};
+    commitments.forEach(c => {
+      const key = c.projectContext ?? 'General';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(c);
+    });
+    // Sort alphabetically; 'General' always last
+    return Object.entries(groups).sort(([a], [b]) =>
+      a === 'General' ? 1 : b === 'General' ? -1 : a.localeCompare(b)
+    );
+  }, [commitments]);
+
   if (isLoading) {
     return (
       <div className={styles.pane} data-testid="commit-pane">
@@ -270,9 +318,25 @@ export function CommitPane({ commitments, isLoading, currentUserId, onCommitment
     <div className={styles.pane} data-testid="commit-pane">
       <div className={styles.header}>
         <Text size={500} weight="semibold">{t('commitPane.header.title')}</Text>
-        <Badge appearance="outline" color="informative">
-          {commitments.length}
-        </Badge>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          <Badge appearance="outline" color="informative" style={{ marginRight: '8px' }}>
+            {commitments.length}
+          </Badge>
+          <Button
+            size="small"
+            appearance={viewMode === 'priority' ? 'primary' : 'subtle'}
+            onClick={() => setViewMode('priority')}
+          >
+            Priority
+          </Button>
+          <Button
+            size="small"
+            appearance={viewMode === 'project' ? 'primary' : 'subtle'}
+            onClick={() => setViewMode('project')}
+          >
+            Project
+          </Button>
+        </div>
       </div>
 
       <Divider />
@@ -285,7 +349,8 @@ export function CommitPane({ commitments, isLoading, currentUserId, onCommitment
         </div>
       )}
 
-      {QUADRANT_ORDER.map(quadrant => {
+      {/* ── By Priority view (Eisenhower quadrants) ─────────────────────────── */}
+      {viewMode === 'priority' && QUADRANT_ORDER.map(quadrant => {
         const items = grouped[quadrant];
         if (items.length === 0) return null;
         return (
@@ -303,6 +368,27 @@ export function CommitPane({ commitments, isLoading, currentUserId, onCommitment
           </div>
         );
       })}
+
+      {/* ── By Project view ──────────────────────────────────────────────────── */}
+      {viewMode === 'project' && groupedByProject.map(([project, items]) => (
+        <div key={project}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: tokens.spacingVerticalS }}>
+            <Text className={styles.quadrantLabel}>{project}</Text>
+            <Badge appearance="filled" size="small" color="informative">
+              {items.length}
+            </Badge>
+          </div>
+          {items.map((c, idx) => (
+            <CommitCard
+              key={c.id}
+              commitment={c}
+              onClick={() => onCommitmentClick?.(c)}
+              delay={idx * 40}
+              currentUserId={currentUserId}
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

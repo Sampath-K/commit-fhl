@@ -22,7 +22,10 @@ public record CommitmentResponse(
     int ImpactScore,
     double BurnoutContribution,
     string? LastActivity,
-    int? OwnerDeliveryScoreAtCreation
+    int? OwnerDeliveryScoreAtCreation,
+    string? ResolutionReason,
+    string? ProjectContext,
+    string? ArtifactName
 )
 {
     /// <summary>Maps a storage entity to the frontend DTO.</summary>
@@ -45,7 +48,10 @@ public record CommitmentResponse(
         ImpactScore:                  e.ImpactScore,
         BurnoutContribution:          e.BurnoutContribution,
         LastActivity:                 e.LastActivity?.ToString("o"),
-        OwnerDeliveryScoreAtCreation: e.OwnerDeliveryScoreAtCreation
+        OwnerDeliveryScoreAtCreation: e.OwnerDeliveryScoreAtCreation,
+        ResolutionReason:             e.ResolutionReason,
+        ProjectContext:               e.ProjectContext,
+        ArtifactName:                 e.ArtifactName
     );
 
     private static string[] Deserialize(string json)
@@ -60,6 +66,8 @@ public record CommitmentResponse(
         "chat"       => "chat",
         "email"      => "email",
         "ado"        => "ado",
+        "drive"      => "drive",
+        "planner"    => "planner",
         _            => "meeting",
     };
 

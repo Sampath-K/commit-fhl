@@ -36,6 +36,12 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: tokens.spacingHorizontalS,
   },
+  recipientsRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalXS,
+  },
   draftBox: {
     backgroundColor: tokens.colorNeutralBackground3,
     borderRadius: tokens.borderRadiusMedium,
@@ -63,16 +69,22 @@ const useStyles = makeStyles({
 
 interface ApprovalCardProps {
   commitmentId: string;
+  userId: string;
   draft: AgentDraft;
   onDecision?: (decision: ApprovalDecision) => void;
+  /** Teams SSO token — when present, sent as Authorization header so the backend
+   *  can perform the OBO exchange and dispatch a real Teams message. */
+  authToken?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ApprovalCard({
   commitmentId,
+  userId,
   draft,
   onDecision,
+  authToken,
 }: ApprovalCardProps): JSX.Element {
   const { t } = useTranslation();
   const styles  = useStyles();
@@ -89,6 +101,16 @@ export function ApprovalCard({
     immediate: reduced,
   });
 
+  function postApproval(payload: ApprovalDecision): void {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    void fetch(`${API_BASE}/api/v1/approvals?userId=${encodeURIComponent(userId)}`, {
+      method:  'POST',
+      headers,
+      body:    JSON.stringify(payload),
+    });
+  }
+
   function handleDecision(decision: 'approve' | 'edit' | 'skip'): void {
     if (decision === 'edit') {
       setMode('edit');
@@ -96,39 +118,35 @@ export function ApprovalCard({
     }
 
     const payload: ApprovalDecision = {
-      draftId:       draft.draftId,
+      draftId:          draft.draftId,
       commitmentId,
       decision,
-      editedContent: decision === 'skip' ? undefined : editContent,
+      editedContent:    decision === 'skip' ? undefined : editContent,
+      draftContent:     decision === 'skip' ? undefined : draft.content,
+      draftActionType:  decision === 'skip' ? undefined : draft.actionType,
+      draftRecipients:  decision === 'skip' ? undefined : draft.recipients,
     };
 
     setFinalDecision(decision === 'approve' ? 'approved' : 'skipped');
     setMode('done');
     onDecision?.(payload);
-
-    // Fire-and-forget to the approvals endpoint
-    void fetch(`${API_BASE}/api/v1/approvals`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-    });
+    postApproval(payload);
   }
 
   function handleEditApprove(): void {
     const payload: ApprovalDecision = {
-      draftId:       draft.draftId,
+      draftId:         draft.draftId,
       commitmentId,
-      decision:      'edit',
-      editedContent: editContent,
+      decision:        'edit',
+      editedContent:   editContent,
+      draftContent:    draft.content,
+      draftActionType: draft.actionType,
+      draftRecipients: draft.recipients,
     };
     setFinalDecision('edited');
     setMode('done');
     onDecision?.(payload);
-    void fetch(`${API_BASE}/api/v1/approvals`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-    });
+    postApproval(payload);
   }
 
   const actionTypeLabel: Record<AgentDraft['actionType'], string> = {
@@ -147,12 +165,19 @@ export function ApprovalCard({
               {actionTypeLabel[draft.actionType] ?? t('approvalCard.draft')}
             </Text>
           }
-          action={
-            <Badge color="informative" size="small">
-              {draft.recipients.length} recipient{draft.recipients.length !== 1 ? 's' : ''}
-            </Badge>
-          }
         />
+
+        {/* Recipients row */}
+        <div className={styles.recipientsRow}>
+          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+            {t('approvalCard.to')}:
+          </Text>
+          {draft.recipients.map(name => (
+            <Badge key={name} appearance="tint" color="informative" size="small">
+              {name}
+            </Badge>
+          ))}
+        </div>
 
         {/* Context strip */}
         <div className={styles.contextStrip}>

@@ -182,6 +182,80 @@ public sealed class NlpPipeline : INlpPipeline
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<ResolutionClassification>> ClassifyResolutionAsync(
+        IReadOnlyList<string> commitmentTitles,
+        IReadOnlyList<string[]> followUpMessages,
+        CancellationToken ct = default)
+    {
+        // Default: unresolved, low confidence — returned when OpenAI is unavailable
+        var defaults = commitmentTitles
+            .Select(_ => new ResolutionClassification(false, 0.0, "OpenAI unavailable"))
+            .ToList();
+
+        if (_aiClient is null || commitmentTitles.Count == 0) return defaults;
+
+        // Build a compact batch prompt — all commitments in one call
+        var sb = new StringBuilder();
+        sb.AppendLine("Commitments to check:");
+        for (var i = 0; i < commitmentTitles.Count; i++)
+            sb.AppendLine($"[{i}] \"{commitmentTitles[i]}\"");
+
+        sb.AppendLine("\nFollow-up messages from the same person (per commitment):");
+        for (var i = 0; i < followUpMessages.Count; i++)
+        {
+            var msgs = followUpMessages[i];
+            if (msgs.Length == 0) { sb.AppendLine($"[{i}] (none)"); continue; }
+            sb.AppendLine($"[{i}]");
+            foreach (var m in msgs.Take(5))
+                sb.AppendLine($"  - \"{m[..Math.Min(m.Length, 150)]}\"");
+        }
+
+        sb.AppendLine("""
+
+            For each commitment index, respond ONLY with a JSON array:
+            [{"index":0,"resolved":true,"confidence":0.95,"evidence":"sent the report in message #1"},...]
+            resolved=true only when there is clear evidence the task was completed.
+            confidence is 0.0–1.0. evidence is ≤60 chars.
+            """);
+
+        try
+        {
+            var client   = _aiClient.GetChatClient(_deployment);
+            var response = await client.CompleteChatAsync(
+            [
+                new SystemChatMessage(ResolutionSystemPrompt),
+                new UserChatMessage(sb.ToString()),
+            ], cancellationToken: ct);
+
+            var text = response.Value.Content[0].Text;
+            var json = ExtractJsonArray(text);
+            using var doc = JsonDocument.Parse(json);
+
+            var results = new ResolutionClassification[commitmentTitles.Count];
+            for (var i = 0; i < results.Length; i++)
+                results[i] = defaults[i];
+
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                var idx = item.TryGetProperty("index", out var idx2) ? idx2.GetInt32() : -1;
+                if (idx < 0 || idx >= results.Length) continue;
+
+                var resolved   = item.TryGetProperty("resolved",   out var r) && r.GetBoolean();
+                var confidence = item.TryGetProperty("confidence", out var c) ? c.GetDouble() : 0.0;
+                var evidence   = item.TryGetProperty("evidence",   out var e) ? e.GetString() ?? "" : "";
+                results[idx]   = new ResolutionClassification(resolved, confidence, evidence);
+            }
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "NLP resolution classification failed — returning defaults");
+            return defaults;
+        }
+    }
+
     private static string BuildTranscriptText(IEnumerable<TranscriptChunk> chunks)
     {
         var sb = new StringBuilder();
@@ -203,6 +277,14 @@ public sealed class NlpPipeline : INlpPipeline
         var end   = text.LastIndexOf(']');
         return start >= 0 && end > start ? text[start..(end + 1)] : "[]";
     }
+
+    private const string ResolutionSystemPrompt = """
+        You are a completion classifier for a professional commitment tracking tool.
+        Your job is to determine whether a person has completed a specific task based on
+        their recent follow-up messages. Be conservative: only mark resolved=true when
+        there is clear, unambiguous evidence that the task was finished.
+        Always respond with valid JSON array only.
+        """;
 
     private const string SystemPrompt = """
         You are a commitment extractor for a professional productivity tool.

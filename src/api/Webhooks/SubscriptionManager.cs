@@ -22,6 +22,7 @@ public sealed class SubscriptionManager : ISubscriptionManager
     [
         ("/me/chats/getAllMessages",               "created,updated", "Teams chat messages"),
         ("/me/mailFolders/inbox/messages",         "created",         "Outlook inbox messages"),
+        ("/me/drive/root",                         "updated",         "OneDrive file changes"),
     ];
 
     // Graph subscriptions expire; we renew when < 1 day remains

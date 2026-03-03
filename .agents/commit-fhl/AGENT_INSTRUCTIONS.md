@@ -56,14 +56,17 @@ the previous session did not complete correctly. Run Sentinel NOW before any oth
 
 This project uses a specialized 5-agent + Router team. Each agent owns a distinct file slice.
 
-| Agent | Role | File Ownership |
-|-------|------|---------------|
-| **Router** | PM + Tech Lead | `.specify/`, `.agents/` governance |
-| **Forge** | Backend Engineer | `src/api/**` |
-| **Canvas** | Frontend Engineer | `src/app/**`, `src/locales/**` |
-| **Shield** | Platform/DevOps | `infra/**`, `.github/**` |
-| **Lens** | QA/SDET | `tests/**` |
-| **Seed** | Demo/Data | `scripts/**` |
+| Agent | Role | File Ownership | Phase |
+|-------|------|---------------|-------|
+| **Router** | PM + Tech Lead | `.specify/`, `.agents/` governance | All |
+| **Forge** | Backend Engineer | `src/api/**` | 4 |
+| **Canvas** | Frontend Engineer | `src/app/**`, `src/locales/**` | 4 |
+| **Shield** | Platform/DevOps | `infra/**`, `.github/**` | 3–4 |
+| **Lens** | QA/SDET | `tests/**` | 4 |
+| **Seed** | Demo/Data | `scripts/**` | 4 end |
+| **Sentinel** | Integrity verifier | Governance review | Session end |
+| **Recon** | Research analyst | `.specify/memory/research/` | 1–2 |
+| **Oracle** | Analytics engineer | `scripts/analytics/`, dashboards | Post-live |
 
 **Every task in tasks.md is tagged `[Agent: X]`** — only build tasks assigned to you.
 If you are a single-agent session (Router), you may dispatch to other agents or build directly
@@ -94,7 +97,7 @@ if no specialized agent is active.
 | `.agents/commit-fhl/plan.md` | Architecture, tech stack, API reference |
 | `.agents/commit-fhl/tasks.md` | Full task list with status |
 | `.agents/commit-fhl/decisions.md` | Decisions made + pending decisions |
-| `.specify/memory/constitution.md` | All engineering principles (P-01 to P-27) |
+| `.specify/memory/constitution.md` | All engineering principles (P-01 to P-35) — v1.5.0 |
 | `.specify/memory/ux-psychology.md` | Psychology & animation implementation guide |
 | `.specify/memory/agent-roles/` | Per-agent role cards with ownership & rules |
 | `.specify/memory/agent-inbox.md` | Inter-agent messages |

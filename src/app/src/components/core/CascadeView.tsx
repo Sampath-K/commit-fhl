@@ -17,7 +17,8 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS, STAGGER_DELAYS } from '../../config/psychology.config';
 import { API_BASE } from '../../config/api.config';
 import { teamFromTaskId } from '../../config/teams.config';
-import type { CascadeApiResponse, CommitmentRecord, ReplanApiOption } from '../../types/api';
+import { ApprovalCard } from './ApprovalCard';
+import type { AgentDraft, CascadeApiResponse, CommitmentRecord, ReplanApiOption } from '../../types/api';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,8 @@ interface CascadeViewProps {
   userId: string;
   onClose: () => void;
   onReplanSelected?: (option: ReplanApiOption) => void;
+  /** Teams SSO token forwarded to ApprovalCard for real Teams message dispatch. */
+  authToken?: string;
 }
 
 export function CascadeView({
@@ -106,6 +109,7 @@ export function CascadeView({
   userId,
   onClose,
   onReplanSelected,
+  authToken,
 }: CascadeViewProps): JSX.Element {
   const { t } = useTranslation();
   const styles = useStyles();
@@ -116,6 +120,7 @@ export function CascadeView({
   const [replanOptions, setReplanOptions] = useState<ReplanApiOption[]>([]);
   const [showReplan, setShowReplan] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeDraft, setActiveDraft] = useState<AgentDraft | null>(null);
 
   // ── Slide-in for the whole panel ─────────────────────────────────────────
   const panelSpring = useSpring({
@@ -169,6 +174,26 @@ export function CascadeView({
     } catch {
       /* replan fetch failed — show empty state */
     }
+  }
+
+  /** Synthesise an AgentDraft when a replan option is chosen — enables one-click comms demo */
+  function buildDraftForOption(opt: ReplanApiOption): AgentDraft {
+    const slipDays = cascadeData?.slipDays ?? 1;
+    const isCleanSlip = opt.optionId === 'C';
+
+    const content = isCleanSlip
+      ? `Hi team,\n\nQuick heads up on the Reschedule BizChat Skill timeline.\n\nThe SEVAL feedback cycle has extended by ~${slipDays} day(s) due to additional prompt hardening requirements from the Responsible AI team.\n\nUpdated schedule:\n• SEVAL re-review: +${slipDays}d\n• Code Complete: March 17 (was March 15)\n• Ship Decision: still targeting Q1\n\nAction needed: Please check if your downstream commitments can flex by ${slipDays} day(s). If this creates a blocker, let's connect tomorrow.\n\n— Alex Chen (via Commit)`
+      : `Hi team,\n\nUpdate on ${commitment.title}: we're pursuing Option ${opt.optionId} (${opt.label}) to address the current ${slipDays}-day slip.\n\n${opt.requiredActions.slice(0, 2).map((a, i) => `${i + 1}. ${a}`).join('\n')}\n\nI'll send a status update once we've confirmed the approach.\n\n— Alex Chen (via Commit)`;
+
+    return {
+      draftId:        `draft-${opt.optionId}-${Date.now()}`,
+      actionType:     'send-message',
+      content,
+      contextSummary: `Option ${opt.optionId}: ${opt.label} — ${cascadeData?.affectedCount ?? 0} task(s) affected`,
+      recipients:     ['Marcus Johnson', 'Priya Singh', 'David Chen'],
+      createdAt:      new Date().toISOString(),
+      status:         'pending',
+    };
   }
 
   const impactColor = (score: number): string =>
@@ -284,7 +309,10 @@ export function CascadeView({
             <Card
               key={opt.optionId}
               className={styles.replanOption}
-              onClick={() => onReplanSelected?.(opt)}>
+              onClick={() => {
+                onReplanSelected?.(opt);
+                setActiveDraft(buildDraftForOption(opt));
+              }}>
               <div className={styles.optionHeader}>
                 <Text size={300} weight="semibold">
                   {opt.optionId}. {opt.label}
@@ -309,8 +337,26 @@ export function CascadeView({
               )}
             </Card>
           ))}
+
+          {/* ApprovalCard — appears after any replan option is selected */}
+          {activeDraft && (
+            <>
+              <Divider />
+              <Text size={300} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
+                ✍️ Agent-drafted message — review before sending
+              </Text>
+              <ApprovalCard
+                commitmentId={commitment.id}
+                userId={userId}
+                draft={activeDraft}
+                onDecision={() => setActiveDraft(null)}
+                authToken={authToken}
+              />
+            </>
+          )}
+
           <div className={styles.actions}>
-            <Button appearance="transparent" onClick={() => setShowReplan(false)}>
+            <Button appearance="transparent" onClick={() => { setShowReplan(false); setActiveDraft(null); }}>
               {t('actions.back')}
             </Button>
           </div>

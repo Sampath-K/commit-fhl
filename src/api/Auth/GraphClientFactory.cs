@@ -17,11 +17,14 @@ public sealed class GraphClientFactory : IGraphClientFactory
     private readonly string _clientSecret;
     private readonly ILogger<GraphClientFactory> _logger;
 
-    // Graph scopes required for Commit features
+    // Graph scopes required for Commit features.
+    // Chat.ReadWrite + ChatMessage.Send require admin consent (delegated).
     private static readonly string[] GraphScopes =
     [
         "https://graph.microsoft.com/User.Read",
         "https://graph.microsoft.com/Chat.Read",
+        "https://graph.microsoft.com/Chat.ReadWrite",
+        "https://graph.microsoft.com/ChatMessage.Send",
         "https://graph.microsoft.com/Mail.Read",
         "https://graph.microsoft.com/Calendars.ReadWrite",
         "https://graph.microsoft.com/OnlineMeetings.Read",

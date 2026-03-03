@@ -110,7 +110,7 @@ async function getTenantDomain(token: string): Promise<string> {
     console.log(`  Using TENANT_DOMAIN env var: ${process.env['TENANT_DOMAIN']}`);
     return process.env['TENANT_DOMAIN'];
   }
-  const res = await graphGet<{ id: string; verifiedDomains: { name: string; isDefault: boolean }[] }>(
+  const res = await graphGet<{ value: { id: string; verifiedDomains: { name: string; isDefault: boolean }[] }[] }>(
     token, 'v1.0/organization?$select=id,verifiedDomains'
   );
   const domains = res.value?.[0]?.verifiedDomains ?? [];

@@ -65,11 +65,13 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddHttpClient("graph");
 builder.Services.AddHttpClient("ado");
 
-// ─── Signal Extractors (T-010, T-012, T-013, T-014) ───────────────────────────
+// ─── Signal Extractors (T-010, T-012, T-013, T-014 + Drive/Planner) ──────────
 builder.Services.AddSingleton<ITranscriptExtractor, TranscriptExtractor>();
 builder.Services.AddSingleton<IChatExtractor, ChatExtractor>();
 builder.Services.AddSingleton<IEmailExtractor, EmailExtractor>();
 builder.Services.AddSingleton<IAdoExtractor, AdoExtractor>();
+builder.Services.AddSingleton<IDriveExtractor, DriveExtractor>();
+builder.Services.AddSingleton<IPlannerExtractor, PlannerExtractor>();
 
 // ─── NLP + Pipeline Services (T-011, T-015, T-016) ───────────────────────────
 builder.Services.AddSingleton<INlpPipeline, NlpPipeline>();
@@ -86,10 +88,13 @@ builder.Services.AddSingleton<IReplanGenerator, ReplanGenerator>();
 // ─── Risk Detector (T-024) — 15-min background polling ───────────────────────
 builder.Services.AddHostedService<RiskDetector>();
 
-// ─── Token Cache + Extraction Orchestrator + Polling Service (T-043) ─────────
+// ─── Token Cache + Event Bus + Extraction Orchestrator + Background Services ──
 builder.Services.AddSingleton<TokenCache>();
+builder.Services.AddSingleton<CommitmentEventBus>();
 builder.Services.AddSingleton<IExtractionOrchestrator, ExtractionOrchestrator>();
 builder.Services.AddHostedService<ExtractionPollingService>();
+builder.Services.AddHostedService<SubscriptionRenewalService>();
+builder.Services.AddHostedService<CommitmentResolutionService>();
 
 // ─── Execution Agents (T-028, T-029, T-030, T-031, T-032) ────────────────────
 builder.Services.AddSingleton<AdaptiveCardBuilder>();
@@ -97,6 +102,7 @@ builder.Services.AddSingleton<IStatusUpdateDrafter, StatusUpdateDrafter>();
 builder.Services.AddSingleton<IOvercommitFirewall,  OvercommitFirewall>();
 builder.Services.AddSingleton<ICalendarBlocker,     CalendarBlocker>();
 builder.Services.AddSingleton<IPrReviewDrafter,     PrReviewDrafter>();
+builder.Services.AddSingleton<ITeamsMessageSender,  TeamsMessageSender>();
 
 // ─── Motivation Service (T-034) ────────────────────────────────────────────────
 builder.Services.AddSingleton<IMotivationService, MotivationService>();
@@ -357,6 +363,59 @@ api.MapPost("/subscriptions", async (HttpContext http, ISubscriptionManager subs
 .WithName("EnsureSubscriptions")
 .WithOpenApi();
 
+// GET /api/v1/events/stream?userId=X — SSE stream for real-time commitment updates
+// Sends a lightweight ping when new commitments are stored; the tab re-fetches /commitments.
+// Unauthenticated by design: zero data flows through this endpoint (no PII risk).
+// A keepalive comment is sent every 25 s to prevent proxy/load-balancer timeouts.
+api.MapGet("/events/stream", async (HttpContext http, CommitmentEventBus bus, CancellationToken ct) =>
+{
+    var userId = http.Request.Query["userId"].ToString();
+    if (string.IsNullOrEmpty(userId))
+    {
+        http.Response.StatusCode = 400;
+        return;
+    }
+
+    http.Response.Headers["Content-Type"]      = "text/event-stream";
+    http.Response.Headers["Cache-Control"]     = "no-cache";
+    http.Response.Headers["X-Accel-Buffering"] = "no";
+
+    // Initial connected ping so the client knows the stream is live
+    await http.Response.WriteAsync("data: {\"connected\":true}\n\n", ct);
+    await http.Response.Body.FlushAsync(ct);
+
+    var reader = bus.Subscribe(userId);
+    try
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            // Wait for an event OR 25 s — whichever comes first
+            using var keepaliveCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            keepaliveCts.CancelAfter(TimeSpan.FromSeconds(25));
+
+            try
+            {
+                var upserted = await reader.ReadAsync(keepaliveCts.Token);
+                await http.Response.WriteAsync($"data: {{\"upserted\":{upserted}}}\n\n", ct);
+                await http.Response.Body.FlushAsync(ct);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Keepalive timeout — send SSE comment to keep the connection alive
+                await http.Response.WriteAsync(": keepalive\n\n", ct);
+                await http.Response.Body.FlushAsync(ct);
+            }
+        }
+    }
+    catch (OperationCanceledException) { /* client disconnected — normal */ }
+    finally
+    {
+        bus.Unsubscribe(userId);
+    }
+})
+.WithName("CommitmentEventStream")
+.WithOpenApi();
+
 // POST /api/v1/extract — trigger signal extraction for the caller (T-010–T-016, T-043)
 // Delegates to ExtractionOrchestrator and caches the token for future background polling.
 api.MapPost("/extract", async (
@@ -562,10 +621,11 @@ api.MapGet("/users/{userId}/motivation", async (
 
 // POST /api/v1/approvals — handle Approve / Edit / Skip decisions (T-034)
 api.MapPost("/approvals", async (
-    HttpContext         http,
+    HttpContext           http,
     ICommitmentRepository repo,
-    ICalendarBlocker    calendarBlocker,
-    IAppInsightsClient  insights) =>
+    ICalendarBlocker      calendarBlocker,
+    ITeamsMessageSender   teamsMessageSender,
+    IAppInsightsClient    insights) =>
 {
     // Parse body
     ApprovalDecision? decision;
@@ -587,6 +647,15 @@ api.MapPost("/approvals", async (
     var userId = http.Request.Query["userId"].ToString();
     if (string.IsNullOrEmpty(userId))
         throw new ValidationException("userId query parameter is required");
+
+    // Diagnostic: log token + payload fields so we can see exactly what arrives
+    app.Logger.LogInformation(
+        "Approval received: decision={Decision} actionType={ActionType} recipients={Recipients} hasToken={HasToken} userId={UserId}",
+        decision!.Decision,
+        decision.DraftActionType ?? "null",
+        decision.DraftRecipients?.Length ?? 0,
+        token is not null,
+        userId);
 
     var entity = await repo.GetAsync(userId, decision.CommitmentId);
     if (entity is null)
@@ -641,6 +710,25 @@ api.MapPost("/approvals", async (
                 if (t.IsFaulted)
                     app.Logger.LogWarning(t.Exception, "Calendar block failed for commitment {Id}", decision.CommitmentId);
             }, TaskScheduler.Default);
+    }
+
+    // Teams message send: if the draft is a send-message action and was approved/edited
+    if ((decision.Decision is "approve" or "edit")
+        && decision.DraftActionType == "send-message"
+        && decision.DraftRecipients?.Length > 0
+        && token is not null)
+    {
+        var messageContent = decision.EditedContent ?? decision.DraftContent ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(messageContent))
+        {
+            // Fire-and-forget — Teams send is best-effort; UI already shows "✅ Sent"
+            _ = teamsMessageSender.SendAsync(token, userId, messageContent, decision.DraftRecipients)
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        app.Logger.LogWarning(t.Exception, "Teams message send failed for commitment {Id}", decision.CommitmentId);
+                }, TaskScheduler.Default);
+        }
     }
 
     insights.TrackUserAction("approval", PiiScrubber.HashValue(userId), "approvals",

@@ -35,7 +35,7 @@ public sealed class EmailExtractor : IEmailExtractor
         var url = $"{GraphV1}/me/mailFolders/inbox/messages" +
                   $"?$filter=(isRead eq false or flag/flagStatus eq 'flagged')" +
                   $" and receivedDateTime ge {Uri.EscapeDataString(since)}" +
-                  $"&$select=id,subject,from,receivedDateTime,bodyPreview,webLink,flag&$top=50";
+                  $"&$select=id,subject,from,receivedDateTime,bodyPreview,webLink,flag,conversationId&$top=50";
 
         string? nextLink = url;
 
@@ -56,10 +56,12 @@ public sealed class EmailExtractor : IEmailExtractor
 
             foreach (var msg in doc.RootElement.GetProperty("value").EnumerateArray())
             {
-                var subject     = msg.TryGetProperty("subject", out var s) ? s.GetString() : "";
-                var preview     = msg.TryGetProperty("bodyPreview", out var bp) ? bp.GetString() ?? "" : "";
-                var webLink     = msg.TryGetProperty("webLink", out var wl) ? wl.GetString() ?? "" : "";
-                var receivedAt  = msg.TryGetProperty("receivedDateTime", out var rd)
+                var subject        = msg.TryGetProperty("subject", out var s) ? s.GetString() : "";
+                var preview        = msg.TryGetProperty("bodyPreview", out var bp) ? bp.GetString() ?? "" : "";
+                var webLink        = msg.TryGetProperty("webLink", out var wl) ? wl.GetString() ?? "" : "";
+                var messageId      = msg.TryGetProperty("id", out var mid) ? mid.GetString() : null;
+                var conversationId = msg.TryGetProperty("conversationId", out var cid) ? cid.GetString() : null;
+                var receivedAt     = msg.TryGetProperty("receivedDateTime", out var rd)
                     ? DateTimeOffset.Parse(rd.GetString()!)
                     : DateTimeOffset.UtcNow;
 
@@ -72,7 +74,10 @@ public sealed class EmailExtractor : IEmailExtractor
 
                 if (!HasActionSignal(subject + " " + preview)) continue;
 
-                var context = preview.Length > 200 ? preview[..200] : preview;
+                var context    = preview.Length > 200 ? preview[..200] : preview;
+                var sourceMeta = messageId is not null
+                    ? System.Text.Json.JsonSerializer.Serialize(new { messageId, conversationId })
+                    : null;
 
                 commitments.Add(new RawCommitment(
                     Title:            NormalizeSubject(subject ?? "Action required"),
@@ -84,7 +89,9 @@ public sealed class EmailExtractor : IEmailExtractor
                     DueAt:            InferDueDate(subject + " " + preview),
                     Confidence:       0.65,  // Email heuristic baseline; NLP refines
                     WatcherUserIds:   [],
-                    SourceContext:    context));
+                    SourceContext:    context,
+                    SourceMetadata:   sourceMeta,
+                    ArtifactName:     NormalizeSubject(subject ?? "")));
             }
 
             nextLink = doc.RootElement.TryGetProperty("@odata.nextLink", out var nl)

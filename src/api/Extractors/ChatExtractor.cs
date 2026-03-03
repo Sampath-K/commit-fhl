@@ -54,6 +54,9 @@ public sealed class ChatExtractor : IChatExtractor
             // Only DMs and small group chats (not channels — handled separately)
             if (chatType != "oneOnOne" && chatType != "group") continue;
 
+            var artifactName = !string.IsNullOrWhiteSpace(topic)
+                ? topic : chatType == "oneOnOne" ? "Direct message" : "Group chat";
+
             var messagesUrl = $"{GraphV1}/me/chats/{chatId}/messages" +
                               $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
                               $"&$select=id,from,body,createdDateTime,webUrl&$top=50";
@@ -77,14 +80,17 @@ public sealed class ChatExtractor : IChatExtractor
                 var name      = sender.ValueKind != JsonValueKind.Undefined
                     ? sender.TryGetProperty("displayName", out var dn) ? dn.GetString() : "Unknown"
                     : "Unknown";
-                var webUrl    = msg.TryGetProperty("webUrl", out var wu) ? wu.GetString() : "";
-                var createdAt = msg.TryGetProperty("createdDateTime", out var cr)
-                    ? DateTimeOffset.Parse(cr.GetString()!)
-                    : DateTimeOffset.UtcNow;
+                var webUrl     = msg.TryGetProperty("webUrl", out var wu) ? wu.GetString() : "";
+                var messageId  = msg.TryGetProperty("id", out var mid) ? mid.GetString() : null;
 
                 // Strip HTML tags from body for context snippet
                 var plainText = StripHtml(bodyContent);
                 var context   = plainText.Length > 200 ? plainText[..200] : plainText;
+
+                var sourceMeta = messageId is not null
+                    ? System.Text.Json.JsonSerializer.Serialize(
+                        new { chatId, messageId, chatType = "dm" })
+                    : null;
 
                 commitments.Add(new RawCommitment(
                     Title:             InferTitle(plainText),
@@ -96,7 +102,80 @@ public sealed class ChatExtractor : IChatExtractor
                     DueAt:             InferDueDate(plainText),
                     Confidence:        0.70,  // Chat signals are heuristic; NLP pipeline will refine
                     WatcherUserIds:    [],
-                    SourceContext:     context));
+                    SourceContext:     context,
+                    SourceMetadata:    sourceMeta,
+                    ProjectContext:    null,          // DMs have no project context
+                    ArtifactName:      artifactName));
+            }
+        }
+
+        // ── Scan joined-team channel messages ─────────────────────────────────
+        var teamsUrl = $"{GraphV1}/me/joinedTeams?$select=id,displayName&$top=10";
+        var teams    = await GetPagedAsync(teamsUrl, bearerToken, ct);
+
+        foreach (var team in teams)
+        {
+            var teamId      = team.GetProperty("id").GetString() ?? "";
+            var teamName    = team.TryGetProperty("displayName", out var tdn) ? tdn.GetString() : null;
+
+            var channelsUrl = $"{GraphV1}/teams/{teamId}/channels?$select=id,displayName&$top=5";
+            var channels    = await GetPagedAsync(channelsUrl, bearerToken, ct);
+
+            foreach (var channel in channels)
+            {
+                var channelId          = channel.GetProperty("id").GetString() ?? "";
+                var channelDisplayName = channel.TryGetProperty("displayName", out var cdn) ? cdn.GetString() : null;
+
+                var channelMessagesUrl =
+                    $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages" +
+                    $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
+                    $"&$select=id,from,body,createdDateTime,webUrl&$top=30";
+
+                var channelMessages = await GetPagedAsync(channelMessagesUrl, bearerToken, ct);
+
+                foreach (var msg in channelMessages)
+                {
+                    var bodyContent = msg.TryGetProperty("body", out var body)
+                        ? body.TryGetProperty("content", out var c) ? c.GetString() : null
+                        : null;
+
+                    if (bodyContent is null || !HasActionSignal(bodyContent)) continue;
+
+                    var sender = msg.TryGetProperty("from", out var from)
+                        ? from.TryGetProperty("user", out var u) ? u : default
+                        : default;
+                    var userId = sender.ValueKind != JsonValueKind.Undefined
+                        ? sender.TryGetProperty("id", out var uid) ? uid.GetString() : null
+                        : null;
+                    var name = sender.ValueKind != JsonValueKind.Undefined
+                        ? sender.TryGetProperty("displayName", out var dn) ? dn.GetString() : "Unknown"
+                        : "Unknown";
+                    var webUrl    = msg.TryGetProperty("webUrl", out var wu) ? wu.GetString() : "";
+                    var messageId = msg.TryGetProperty("id", out var mid) ? mid.GetString() : null;
+
+                    var plainText = StripHtml(bodyContent);
+                    var context   = plainText.Length > 200 ? plainText[..200] : plainText;
+
+                    var sourceMeta = messageId is not null
+                        ? System.Text.Json.JsonSerializer.Serialize(
+                            new { teamId, channelId, messageId, chatType = "channel" })
+                        : null;
+
+                    commitments.Add(new RawCommitment(
+                        Title:            InferTitle(plainText),
+                        OwnerUserId:      userId ?? "unknown",
+                        OwnerDisplayName: name ?? "Unknown",
+                        SourceType:       CommitmentSourceType.Chat,
+                        SourceUrl:        webUrl ?? "",
+                        ExtractedAt:      DateTimeOffset.UtcNow,
+                        DueAt:            InferDueDate(plainText),
+                        Confidence:       0.70,
+                        WatcherUserIds:   [],
+                        SourceContext:    context,
+                        SourceMetadata:   sourceMeta,
+                        ProjectContext:   teamName,
+                        ArtifactName:     channelDisplayName is not null ? $"#{channelDisplayName}" : null));
+                }
             }
         }
 

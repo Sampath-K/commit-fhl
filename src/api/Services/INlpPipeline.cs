@@ -21,4 +21,20 @@ public interface INlpPipeline
     Task<RawCommitment?> RefineAsync(
         RawCommitment heuristic,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Batch-classifies whether each commitment has been completed based on follow-up
+    /// messages from the same person. Returns one result per commitment, same order.
+    /// One LLM call covers all commitments — designed for cost efficiency.
+    /// </summary>
+    Task<IReadOnlyList<ResolutionClassification>> ClassifyResolutionAsync(
+        IReadOnlyList<string> commitmentTitles,
+        IReadOnlyList<string[]> followUpMessages,
+        CancellationToken ct = default);
 }
+
+/// <summary>GPT classification result for one commitment.</summary>
+public sealed record ResolutionClassification(
+    bool   Resolved,
+    double Confidence,
+    string Evidence);
