@@ -11,6 +11,9 @@ import { App } from './App';
 // This ensures cards show in browser-mode and when Teams SDK is unavailable.
 const DEV_FALLBACK_USER_ID = 'f7a02de7-e195-4894-bc23-f7f74b696cbd';
 
+// Version stamp — visible in DevTools console to confirm which build is running
+console.info('[Commit] app version 1.0.3 loaded');
+
 // Initialize Teams SDK and locale-driven i18n before rendering
 microsoftTeams.app.initialize().then(() => {
   // Fetch context and SSO token in parallel — token may fail outside Teams, that's fine
