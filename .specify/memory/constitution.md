@@ -1,5 +1,5 @@
 # Commit FHL — Project Constitution
-> **Version**: 1.5.0
+> **Version**: 1.6.0
 > **Status**: Ratified
 > **Last amended**: 2026-03-03
 > All agents must read and follow every principle. Amendments require human approval + version bump.
@@ -16,6 +16,7 @@
 | 1.3.0 | 2026-03-02 | Added P-30 (deployment cadence — deployed to tenant is the definition of done) |
 | 1.4.0 | 2026-03-02 | Added P-31 (Sentinel integrity protocol — non-skippable end-of-session verification) |
 | 1.5.0 | 2026-03-03 | Added P-32 (Zero Human Input protocol), P-33 (Human-Agent Co-Team Contract), P-34 (Project Template Protocol); expanded agent roster to 9 (added Recon + Oracle) |
+| 1.6.0 | 2026-03-03 | Added P-36 (Teams app package version bump required on every change) |
 
 ---
 
@@ -758,6 +759,39 @@ The baseline agent roster has expanded from 7 to 9 to cover the full project lif
 
 **Single-agent sessions**: One agent playing all roles is valid. Use role cards as checklists,
 not as hard parallelism requirements. The governance model works whether there is 1 agent or 9.
+
+---
+
+### P-36 — Teams App Package Version Bump
+
+Every change to `appPackage/manifest.json` — regardless of how small — **must** be accompanied
+by a version bump in the `"version"` field before rebuilding `commitai.zip`. No exceptions.
+
+**Rule**: `manifest.json version` must increase on every commit that touches anything in `appPackage/`.
+
+**Why**: Teams Admin Center rejects uploads where the version matches an already-installed version,
+causing the upload to silently fail or error. The version is the only signal Teams uses to detect
+that an update is available.
+
+**Version format**: Semantic versioning `MAJOR.MINOR.PATCH` — use PATCH increments for fixes,
+MINOR increments for new capabilities (new tabs, connectors, scopes).
+
+**Required sequence** — agents must follow this order on every `appPackage/` change:
+
+1. Edit `appPackage/manifest.json` — make the intended change
+2. Bump `"version"` in the same edit (e.g., `1.0.3` → `1.0.4`)
+3. Delete and recreate `appPackage/commitai.zip`:
+   ```powershell
+   Remove-Item appPackage/commitai.zip -Force
+   Compress-Archive -Path appPackage/manifest.json,appPackage/color.png,appPackage/outline.png `
+     -DestinationPath appPackage/commitai.zip -Force
+   ```
+4. Commit both `manifest.json` and `commitai.zip` together in the same commit
+5. Notify the human that a new zip is ready to upload to Teams Admin Center
+
+**Sentinel check**: Sentinel must verify that the version in `manifest.json` is strictly greater
+than the version in the previous commit whenever `appPackage/` files are modified.
+A version that was not bumped is a **CRITICAL** violation (blocks demo upload).
 
 ---
 
