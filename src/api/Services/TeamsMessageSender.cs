@@ -19,12 +19,12 @@ public sealed class TeamsMessageSender : ITeamsMessageSender
     private static readonly Dictionary<string, string> DemoUserOids =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["marcus johnson"]   = "c1c0037d-1b8c-4c34-bede-f6dadc38a8c6",
-            ["priya singh"]      = "8d0832a0-c586-4c41-b6ad-02a76c5b326c",
-            ["david chen"]       = "6a638a9c-cad1-429d-8bc0-d435bf552e5a",
-            ["alex chen"]        = "f7a02de7-e195-4894-bc23-f7f74b696cbd",
-            ["sarah o'brien"]    = "5659f687-9ea8-4dfe-95c7-2990356288af",
-            ["fatima al-hassan"] = "b4e0d4d9-2a77-41f9-a462-3c2e0e7b9c01",
+            ["marcus johnson"]  = "c1c0037d-1b8c-4c34-bede-f6dadc38a8c6",
+            ["priya sharma"]    = "8d0832a0-c586-4c41-b6ad-02a76c5b326c",
+            ["david park"]      = "6a638a9c-cad1-429d-8bc0-d435bf552e5a",
+            ["alex chen"]       = "f7a02de7-e195-4894-bc23-f7f74b696cbd",
+            ["sarah o'brien"]   = "5659f687-9ea8-4dfe-95c7-2990356288af",
+            ["fatima al-rashid"] = "78a8c66f-2928-4edc-9230-d6a209e72f85",
         };
 
     private readonly IGraphClientFactory _graphFactory;
