@@ -48,31 +48,20 @@
 ---
 
 ### D-003: Azure Credentials and App Registration
-**Status**: ⏳ Partially done — one item outstanding
+**Status**: ✅ Done
 **Decided by**: Human
-**Date**: 2026-03-01 (setup-env.sh ran successfully)
-**Blocks tasks**: T-005, T-007, T-008
+**Date**: 2026-03-01 (setup-env.sh); completed 2026-03-03 (OpenAI keys confirmed)
+**Blocks tasks**: T-005, T-007, T-008 — all unblocked
 
-**Done (auto-configured by setup-env.sh):**
+**All credentials configured in src/api/.env and live on Container App:**
 ```
-TENANT_ID=91b9767c-6b0a-4b0b-bd4d-e08a6383426c  ✅
-CLIENT_ID=07b0afff-85b6-4be1-98ba-d26d566bd14a  ✅
-CLIENT_SECRET=<set>                              ✅
-AZURE_STORAGE_CONN=UseDevelopmentStorage=true    ✅ (Azurite)
-```
-
-**Still needed — fill in src/commit/.env before Day 1:**
-```
-AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
-AZURE_OPENAI_KEY=<key from portal>
-AZURE_OPENAI_DEPLOYMENT=gpt-4o   ← or whatever your deployment is named
-```
-How to get these: portal.azure.com → your Azure OpenAI resource → Keys and Endpoint.
-If you need a resource: Create → Azure OpenAI → West US or East US → Standard tier.
-
-**Optional (Day 2 ADO extractor):**
-```
-ADO_PAT=  ← dev.azure.com → User Settings → Personal Access Tokens (Code+Work Items Read)
+TENANT_ID=91b9767c-6b0a-4b0b-bd4d-e08a6383426c        ✅
+CLIENT_ID=07b0afff-85b6-4be1-98ba-d26d566bd14a        ✅
+CLIENT_SECRET=<set>                                    ✅
+AZURE_STORAGE_CONN=(Azurite local / Azure prod)        ✅
+AZURE_OPENAI_ENDPOINT=https://agentteams.openai.azure.com/  ✅ (reused from Commit-FHL)
+AZURE_OPENAI_KEY=<set>                                 ✅
+AZURE_OPENAI_DEPLOYMENT=OpenAICreate-20260221152626    ✅
 ```
 
 ---
@@ -137,7 +126,7 @@ ADO_PAT=  ← dev.azure.com → User Settings → Personal Access Tokens (Code+W
 |----------|------|---------|
 | D-001 | 2026-03-01 | 4 demo success metrics: extraction >85%, latency <5min, cascade 100%, 1-click approval |
 | D-002 | 2026-03-01 | Tech stack: TypeScript frontend + Azure OpenAI (superseded for backend by DA-005) |
-| D-003 | 2026-03-01 | Azure creds configured (Azurite local); Azure OpenAI key still needed |
+| D-003 | 2026-03-03 | All Azure creds + OpenAI keys confirmed (reused Commit-FHL keys, set on Container App) |
 | D-007 | 2026-03-02 | Two demo scripts written: FHL judges (4 min) + Leadership (4-5 min, 3-team narrative) |
 | DA-001 | 2026-03-01 | Azure Table Storage over SQL |
 | DA-002 | 2026-03-01 | Polling + webhooks hybrid |
