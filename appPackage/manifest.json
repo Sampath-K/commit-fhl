@@ -1,8 +1,8 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
-  "version": "1.0.0",
-  "id": "38af388b-4592-4f62-9469-c507c6d96522",
+  "version": "1.0.2",
+  "id": "b3f8a21c-9d4e-4a7f-83c2-e5d16f920b47",
   "developer": {
     "name": "7k2cc2 Demo",
     "websiteUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net",
@@ -10,12 +10,12 @@
     "termsOfUseUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/terms"
   },
   "name": {
-    "short": "Commit",
-    "full": "Commit — AI Commitment Tracker"
+    "short": "CommitAI",
+    "full": "CommitAI — AI Commitment Tracker"
   },
   "description": {
     "short": "Track commitments from meetings, email & ADO",
-    "full": "Commit captures commitments from your meetings, chats, email, and ADO PRs. It builds a live dependency graph, simulates cascades before they happen, and drafts replans with one-click approval."
+    "full": "CommitAI captures commitments from your meetings, chats, email, and ADO PRs. It builds a live dependency graph, simulates cascades before they happen, and drafts replans with one-click approval."
   },
   "icons": {
     "color": "color.png",
@@ -25,7 +25,7 @@
   "staticTabs": [
     {
       "entityId": "commitPane",
-      "name": "Commit",
+      "name": "CommitAI",
       "contentUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/",
       "websiteUrl": "https://thankful-pond-0ba16370f.6.azurestaticapps.net/",
       "scopes": ["personal"]
@@ -35,5 +35,9 @@
   "validDomains": [
     "commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io",
     "thankful-pond-0ba16370f.6.azurestaticapps.net"
-  ]
+  ],
+  "webApplicationInfo": {
+    "id": "07b0afff-85b6-4be1-98ba-d26d566bd14a",
+    "resource": "api://07b0afff-85b6-4be1-98ba-d26d566bd14a"
+  }
 }
