@@ -39,6 +39,8 @@
  * Decision: D-008 — Real-User Demo Tenant Setup
  */
 
+import * as fs   from 'fs';
+import * as path from 'path';
 import { execSync } from 'child_process';
 import { PERSONAS } from './personas/index';
 import { RESCHEDULE_SKILL_COMMITMENTS, RESCHEDULE_SKILL_EDGES } from './scenarios/rescheduleSkill';
@@ -48,6 +50,8 @@ import type { CommitmentRecord } from '../src/app/src/types/api';
 const DRY_RUN      = process.argv.includes('--dry-run');
 const RESET_MODE   = process.argv.includes('--reset');
 const TENANT_ID    = process.env['TENANT_ID']     ?? '91b9767c-6b0a-4b0b-bd4d-e08a6383426c';
+// Hardcode the default domain for 7k2cc2 tenant — avoids needing Organization.Read.All permission
+process.env['TENANT_DOMAIN'] = process.env['TENANT_DOMAIN'] ?? '7k2cc2.onmicrosoft.com';
 const API_BASE     = process.env['API_BASE_URL']  ?? 'http://localhost:5000';
 const DEMO_PASSWORD = process.env['DEMO_PASSWORD'] ?? 'Commit@FHL2026!';
 
@@ -77,30 +81,72 @@ const USER_SPECS: AadUserSpec[] = [
   { personaId: 'sarah',  displayName: "Sarah O'Brien",    givenName: 'Sarah',  surname: "O'Brien",    mailNickname: 'sarah.obrien',  jobTitle: 'Scheduling Skill Engineer', department: 'Scheduling Skill',  demoOid: PERSONAS.find(p => p.id === 'sarah')!.userId },
 ];
 
-// ─── Step 1: Get admin token via Azure CLI ──────────────────────────────────
-function getAdminToken(): string {
-  console.log('  Getting admin token via Azure CLI...');
+// ─── .env reader helper ─────────────────────────────────────────────────────
+function readEnvFile(relPath: string): Record<string, string> {
+  try {
+    const full = path.resolve(__dirname, relPath);
+    return Object.fromEntries(
+      fs.readFileSync(full, 'utf8').split('\n')
+        .map(l => l.trim())
+        .filter(l => l && !l.startsWith('#') && l.includes('='))
+        .map(l => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
+    );
+  } catch { return {}; }
+}
+
+// ─── Step 1: Get admin token ────────────────────────────────────────────────
+// Primary path: client credentials (app-only) — works regardless of az CLI
+//   account type. Secondary: az account get-access-token (fallback).
+async function getAdminToken(): Promise<string> {
+  // Load credentials from environment or src/api/.env
+  const envFile    = readEnvFile('../src/api/.env');
+  const clientId   = process.env['CLIENT_ID']     ?? envFile['CLIENT_ID'];
+  const clientSec  = process.env['CLIENT_SECRET'] ?? envFile['CLIENT_SECRET'];
+
+  if (clientId && clientSec) {
+    console.log('  Getting admin token via client credentials...');
+    try {
+      const params = new URLSearchParams({
+        grant_type:    'client_credentials',
+        client_id:     clientId,
+        client_secret: clientSec,
+        scope:         'https://graph.microsoft.com/.default',
+      });
+      const res = await fetch(
+        `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+        { method: 'POST', body: params }
+      );
+      if (res.ok) {
+        const body = await res.json() as { access_token: string; expires_in: number };
+        console.log(`  ✅ Admin token obtained via client credentials (expires in ${body.expires_in}s)`);
+        return body.access_token;
+      }
+      const errText = await res.text();
+      console.warn(`  ⚠️  Client credentials failed (${res.status}): ${errText.substring(0, 120)}`);
+      console.warn('  Falling back to Azure CLI...');
+    } catch (fetchErr) {
+      console.warn(`  ⚠️  Client credentials fetch error: ${(fetchErr as Error).message}`);
+      console.warn('  Falling back to Azure CLI...');
+    }
+  } else {
+    console.warn('  CLIENT_ID / CLIENT_SECRET not found — trying Azure CLI...');
+  }
+
+  // Fallback: Azure CLI (works for native AAD work accounts)
   try {
     const output = execSync(
       `az account get-access-token --resource https://graph.microsoft.com --tenant ${TENANT_ID} --output json`,
       { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
     const parsed = JSON.parse(output) as { accessToken: string; expiresOn: string };
-    console.log(`  ✅ Admin token obtained (expires: ${parsed.expiresOn})`);
+    console.log(`  ✅ Admin token obtained via Azure CLI (expires: ${parsed.expiresOn})`);
     return parsed.accessToken;
-  } catch (err) {
-    const msg = (err as Error).message;
-    if (msg.includes('az: command not found') || msg.includes('not recognized')) {
-      throw new Error('Azure CLI not found. Install from https://aka.ms/installazurecli');
-    }
-    if (msg.includes('AADSTS') || msg.includes('not logged')) {
-      throw new Error(
-        `Not logged in to Azure CLI as a tenant admin.\n` +
-        `Run: az login --tenant ${TENANT_ID}\n` +
-        `Then retry this script.`
-      );
-    }
-    throw err;
+  } catch (cliErr) {
+    const msg = (cliErr as Error).message;
+    const hint = clientId
+      ? `Client credentials failed (see above).\nEnsure the app has User.ReadWrite.All application permission + admin consent.`
+      : `Set CLIENT_ID and CLIENT_SECRET in src/api/.env, or:\n  az login --tenant ${TENANT_ID}`;
+    throw new Error(`Authentication failed — no working credential source.\n${hint}\nCLI error: ${msg.substring(0, 120)}`);
   }
 }
 
@@ -295,7 +341,7 @@ async function setupTenant(): Promise<void> {
 
   // ── Step 1: Admin token ────────────────────────────────────────────────────
   console.log('STEP 1: Authenticate');
-  const token = DRY_RUN ? 'dry-run-token' : getAdminToken();
+  const token = DRY_RUN ? 'dry-run-token' : await getAdminToken();
 
   // ── Step 2: Detect domain ──────────────────────────────────────────────────
   console.log('\nSTEP 2: Detect tenant domain');
