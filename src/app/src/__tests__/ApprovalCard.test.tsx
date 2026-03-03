@@ -99,11 +99,11 @@ describe('ApprovalCard — view mode', () => {
   });
 
   it('renders each recipient as a named badge', () => {
-    const draft = makeDraft({ recipients: ['Marcus Johnson', 'Priya Singh', 'David Chen'] });
+    const draft = makeDraft({ recipients: ['Marcus Johnson', 'Priya Sharma', 'David Park'] });
     render(<ApprovalCard commitmentId="rbs-001" userId={TEST_USER_ID} draft={draft} />);
     expect(screen.getByText('Marcus Johnson')).toBeInTheDocument();
-    expect(screen.getByText('Priya Singh')).toBeInTheDocument();
-    expect(screen.getByText('David Chen')).toBeInTheDocument();
+    expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+    expect(screen.getByText('David Park')).toBeInTheDocument();
   });
 
   it('renders the "To:" label before recipients', () => {
@@ -198,7 +198,7 @@ describe('ApprovalCard — approve flow', () => {
   it('includes draftContent and draftRecipients in the fetch payload', async () => {
     const draft = makeDraft({
       content:    'Hi Marcus, heads up',
-      recipients: ['Marcus Johnson', 'Priya Singh'],
+      recipients: ['Marcus Johnson', 'Priya Sharma'],
       actionType: 'send-message',
     });
     render(<ApprovalCard commitmentId="rbs-001" userId={TEST_USER_ID} draft={draft} />);
@@ -358,7 +358,7 @@ describe('ApprovalCard — edit → approve flow', () => {
 
 describe('ApprovalCard — recipients row', () => {
   it('shows one badge per recipient', () => {
-    const draft = makeDraft({ recipients: ['Marcus Johnson', 'Priya Singh'] });
+    const draft = makeDraft({ recipients: ['Marcus Johnson', 'Priya Sharma'] });
     render(<ApprovalCard commitmentId="rbs-001" userId={TEST_USER_ID} draft={draft} />);
     expect(screen.getAllByText(/Marcus Johnson|Priya Singh/).length).toBe(2);
   });

@@ -40,7 +40,7 @@ export function makeDraft(overrides: Partial<AgentDraft> = {}): AgentDraft {
     actionType:     'send-message',
     content:        'Hi team, quick update on the timeline.',
     contextSummary: 'Option C: Clean Slip — 3 task(s) affected',
-    recipients:     ['Marcus Johnson', 'Priya Singh'],
+    recipients:     ['Marcus Johnson', 'Priya Sharma'],
     createdAt:      '2026-03-01T10:00:00Z',
     status:         'pending',
     ...overrides,

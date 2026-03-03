@@ -410,8 +410,8 @@ describe('CascadeView — ApprovalCard trigger after replan option click', () =>
     });
     await waitFor(() => {
       expect(screen.getByText('Marcus Johnson')).toBeInTheDocument();
-      expect(screen.getByText('Priya Singh')).toBeInTheDocument();
-      expect(screen.getByText('David Chen')).toBeInTheDocument();
+      expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+      expect(screen.getByText('David Park')).toBeInTheDocument();
     });
   });
 

@@ -190,7 +190,7 @@ export function CascadeView({
       actionType:     'send-message',
       content,
       contextSummary: `Option ${opt.optionId}: ${opt.label} — ${cascadeData?.affectedCount ?? 0} task(s) affected`,
-      recipients:     ['Marcus Johnson', 'Priya Singh', 'David Chen'],
+      recipients:     ['Marcus Johnson', 'Priya Sharma', 'David Park'],
       createdAt:      new Date().toISOString(),
       status:         'pending',
     };
