@@ -60,7 +60,13 @@ public record RawCommitment(
     /// Planner:    task title (same as Title)
     /// Transcript: meeting subject
     /// </summary>
-    string? ArtifactName = null
+    string? ArtifactName = null,
+
+    /// <summary>
+    /// Whether this is an external commitment (default) or a completed deliverable.
+    /// Completions are stored immediately with Status = "done" and appear in the Progress view.
+    /// </summary>
+    ItemKind ItemKind = ItemKind.Commitment
 );
 
 /// <summary>Which signal source produced a <see cref="RawCommitment"/>.</summary>
@@ -72,4 +78,15 @@ public enum CommitmentSourceType
     Ado,
     Drive,    // OneDrive/SharePoint Office documents (WXP)
     Planner,  // Microsoft Planner / Loop tasks
+}
+
+/// <summary>
+/// Whether a raw signal is an external commitment or a completed deliverable.
+/// </summary>
+public enum ItemKind
+{
+    /// <summary>The user committed to do something (default — extracted from meetings, chat, email, ADO review threads).</summary>
+    Commitment,
+    /// <summary>The user completed a deliverable (merged PR, closed ADO task, completed Planner task).</summary>
+    Completion,
 }

@@ -1,6 +1,8 @@
+using CommitApi.Auth;
 using CommitApi.Config;
 using CommitApi.Entities;
 using CommitApi.Extractors;
+using CommitApi.Models.Extraction;
 using CommitApi.Repositories;
 using CommitApi.Services;
 
@@ -45,6 +47,7 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
     private readonly ICommitmentRepository   _repo;
     private readonly IAppInsightsClient      _insights;
     private readonly CommitmentEventBus      _eventBus;
+    private readonly IGraphClientFactory     _graphFactory;
     private readonly ILogger<ExtractionOrchestrator> _logger;
 
     public ExtractionOrchestrator(
@@ -60,21 +63,23 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         ICommitmentRepository   repo,
         IAppInsightsClient      insights,
         CommitmentEventBus      eventBus,
+        IGraphClientFactory     graphFactory,
         ILogger<ExtractionOrchestrator> logger)
     {
-        _transcripts = transcripts;
-        _chats       = chats;
-        _emails      = emails;
-        _ado         = ado;
-        _drive       = drive;
-        _planner     = planner;
-        _nlp         = nlp;
-        _dedup       = dedup;
-        _scorer      = scorer;
-        _repo        = repo;
-        _insights    = insights;
-        _eventBus    = eventBus;
-        _logger      = logger;
+        _transcripts  = transcripts;
+        _chats        = chats;
+        _emails       = emails;
+        _ado          = ado;
+        _drive        = drive;
+        _planner      = planner;
+        _nlp          = nlp;
+        _dedup        = dedup;
+        _scorer       = scorer;
+        _repo         = repo;
+        _insights     = insights;
+        _eventBus     = eventBus;
+        _graphFactory = graphFactory;
+        _logger       = logger;
     }
 
     public async Task<int> ExtractAndStoreAsync(string userId, string bearerToken, CancellationToken ct = default)
@@ -82,13 +87,29 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         _logger.LogInformation("ExtractionOrchestrator: starting extraction for user {Hash}",
             PiiScrubber.HashValue(userId));
 
+        // Exchange the incoming SSO token for a Graph-scoped OBO token.
+        // The raw SSO token has aud = app client ID; Graph APIs require aud = graph.microsoft.com.
+        string graphToken;
+        try
+        {
+            graphToken = await _graphFactory.GetOboTokenAsync(bearerToken, ct);
+            _logger.LogDebug("ExtractionOrchestrator: OBO token acquired for user {Hash}",
+                PiiScrubber.HashValue(userId));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OBO token acquisition failed for user {Hash} — Graph extractors will be skipped",
+                PiiScrubber.HashValue(userId));
+            graphToken = bearerToken; // fall back; Graph calls will 401 but ADO can still run
+        }
+
         // ── Run all 6 extractors concurrently ────────────────────────────────
-        var t1 = _transcripts.GetChunksAsync(bearerToken);
-        var t2 = _chats.ExtractAsync(bearerToken);
-        var t3 = _emails.ExtractAsync(bearerToken);
-        var t4 = _ado.ExtractAsync(userId, bearerToken);
-        var t5 = _drive.ExtractAsync(userId, bearerToken);
-        var t6 = _planner.ExtractAsync(bearerToken);
+        var t1 = _transcripts.GetChunksAsync(graphToken);
+        var t2 = _chats.ExtractAsync(graphToken);
+        var t3 = _emails.ExtractAsync(graphToken);
+        var t4 = _ado.ExtractAsync(userId, bearerToken);   // ADO uses its own auth — keep SSO token
+        var t5 = _drive.ExtractAsync(userId, graphToken);
+        var t6 = _planner.ExtractAsync(graphToken);
 
         await Task.WhenAll(t1, t2, t3, t4, t5, t6);
 
@@ -119,10 +140,18 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         foreach (var raw in deduped)
         {
             var priority = _scorer.Score(raw);
+            // Stable RowKey so repeated extractions of the same source message
+            // hit UpsertAsync (Replace) rather than creating duplicate rows.
+            var stableKey = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes(
+                        $"{raw.SourceType}|{raw.SourceUrl}|{raw.SourceMetadata}")));
+
+            var isCompletion = raw.ItemKind == ItemKind.Completion;
             var entity = new CommitmentEntity
             {
                 PartitionKey    = userId,
-                RowKey          = Guid.NewGuid().ToString(),
+                RowKey          = stableKey[..32],
                 Title           = raw.Title,
                 Owner           = userId,
                 WatchersJson    = System.Text.Json.JsonSerializer.Serialize(raw.WatcherUserIds),
@@ -134,8 +163,11 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
                 SourceTimestamp = raw.ExtractedAt,
                 CommittedAt     = raw.ExtractedAt,
                 DueAt           = raw.DueAt,
-                Priority        = priority,
-                Status          = "pending",
+                Priority        = isCompletion ? "not-urgent-not-important" : priority,
+                // Completions are already done — store immediately with status "done".
+                Status          = isCompletion ? "done" : "pending",
+                ItemKind        = isCompletion ? "completion" : "commitment",
+                ResolutionReason = isCompletion ? $"Completed via {raw.SourceType}" : null,
                 ImpactScore     = 0,
                 LastActivity    = DateTimeOffset.UtcNow,
             };

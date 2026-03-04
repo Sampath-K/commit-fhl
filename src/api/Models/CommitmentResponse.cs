@@ -25,7 +25,8 @@ public record CommitmentResponse(
     int? OwnerDeliveryScoreAtCreation,
     string? ResolutionReason,
     string? ProjectContext,
-    string? ArtifactName
+    string? ArtifactName,
+    string ItemKind
 )
 {
     /// <summary>Maps a storage entity to the frontend DTO.</summary>
@@ -51,7 +52,8 @@ public record CommitmentResponse(
         OwnerDeliveryScoreAtCreation: e.OwnerDeliveryScoreAtCreation,
         ResolutionReason:             e.ResolutionReason,
         ProjectContext:               e.ProjectContext,
-        ArtifactName:                 e.ArtifactName
+        ArtifactName:                 e.ArtifactName,
+        ItemKind:                     string.IsNullOrEmpty(e.ItemKind) ? "commitment" : e.ItemKind
     );
 
     private static string[] Deserialize(string json)

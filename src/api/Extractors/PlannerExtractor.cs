@@ -39,7 +39,7 @@ public sealed class PlannerExtractor : IPlannerExtractor
 
         // Fetch all active (incomplete) tasks assigned to the current user
         var tasksUrl = $"{GraphV1}/me/planner/tasks" +
-                       "?$select=title,dueDateTime,createdDateTime,assignments,percentComplete,planId,id";
+                       "?$select=title,dueDateTime,createdDateTime,completedDateTime,assignments,percentComplete,planId,id";
 
         var tasks = await GetPagedAsync(tasksUrl, bearerToken, ct);
 
@@ -48,11 +48,49 @@ public sealed class PlannerExtractor : IPlannerExtractor
 
         foreach (var task in tasks)
         {
-            // Only incomplete tasks
             var pct = task.TryGetProperty("percentComplete", out var pc) ? pc.GetInt32() : 0;
-            if (pct >= 100) continue;
 
-            // Must have a due date to count as a commitment
+            // Completed tasks (percentComplete == 100) → yield as completions if recently done
+            if (pct >= 100)
+            {
+                if (!task.TryGetProperty("completedDateTime", out var completedProp)) continue;
+                if (!DateTimeOffset.TryParse(completedProp.GetString(), out var completedAt)) continue;
+                if (completedAt < since) continue;
+
+                var cTitle  = task.TryGetProperty("title", out var ct2) ? ct2.GetString() ?? "Planner task" : "Planner task";
+                var cTaskId = task.TryGetProperty("id", out var ctid) ? ctid.GetString() : null;
+                var cPlanId = task.TryGetProperty("planId", out var cpid) ? cpid.GetString() : null;
+
+                string? cPlanTitle = null;
+                if (cPlanId is not null)
+                {
+                    if (planTitleCache.TryGetValue(cPlanId, out var cached2)) cPlanTitle = string.IsNullOrEmpty(cached2) ? null : cached2;
+                    else { cPlanTitle = await FetchPlanTitleAsync(cPlanId, bearerToken, ct); planTitleCache[cPlanId] = cPlanTitle ?? ""; }
+                }
+
+                var cWebUrl = cTaskId is not null
+                    ? $"https://tasks.office.com/en-US/Home/Planner#/taskdetail/{cTaskId}"
+                    : "https://tasks.office.com";
+                var cTruncated = cTitle.Length > 80 ? cTitle[..80] + "…" : cTitle;
+
+                commitments.Add(new RawCommitment(
+                    Title:            $"Completed: {cTruncated}",
+                    OwnerUserId:      "self",
+                    OwnerDisplayName: "Me",
+                    SourceType:       CommitmentSourceType.Planner,
+                    SourceUrl:        cWebUrl,
+                    ExtractedAt:      completedAt,
+                    DueAt:            null,
+                    Confidence:       1.0,
+                    WatcherUserIds:   [],
+                    SourceContext:    $"Planner task completed {completedAt:MMM d}",
+                    ProjectContext:   cPlanTitle,
+                    ArtifactName:     null,
+                    ItemKind:         ItemKind.Completion));
+                continue;
+            }
+
+            // Incomplete tasks → commitments (must have due date + created within look-back)
             if (!task.TryGetProperty("dueDateTime", out var dueProp)) continue;
             if (!DateTimeOffset.TryParse(dueProp.GetString(), out var dueAt)) continue;
 

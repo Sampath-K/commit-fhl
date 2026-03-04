@@ -22,6 +22,9 @@ export type EisenhowerQuadrant =
 /** Lifecycle state of a commitment */
 export type CommitmentStatus = 'pending' | 'in-progress' | 'done' | 'deferred' | 'delegated';
 
+/** Whether the item is an external obligation or a completed deliverable */
+export type ItemKind = 'commitment' | 'completion';
+
 /** Dependency edge strength */
 export type EdgeType = 'hard' | 'soft' | 'date' | 'capacity';
 
@@ -68,6 +71,12 @@ export interface CommitmentRecord {
   projectContext?: string;
   /** Artifact name within the project (e.g. "Q2 Roadmap.docx", "#general", email subject). */
   artifactName?: string;
+  /**
+   * "commitment" = external obligation (said I would do X for someone).
+   * "completion" = deliverable shipped (merged PR, closed task, completed Planner item).
+   * Completions are always status: 'done' and appear in the Progress view.
+   */
+  itemKind: ItemKind;
 }
 
 /** Dependency edge between two commitments. */

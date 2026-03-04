@@ -68,6 +68,10 @@ public class CommitmentEntity : ITableEntity
     /// <summary>JSON-serialized string[] of commitment IDs this blocks.</summary>
     public string BlocksJson { get; set; } = "[]";
 
+    // ─── Item kind ─────────────────────────────────────────────────────────────
+    /// <summary>"commitment" | "completion" — external obligation vs. completed deliverable.</summary>
+    public string ItemKind { get; set; } = "commitment";
+
     // ─── Resolution provenance ─────────────────────────────────────────────────
     /// <summary>
     /// Human-readable explanation of how this commitment was auto-resolved.

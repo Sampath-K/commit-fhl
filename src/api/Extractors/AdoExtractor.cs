@@ -42,8 +42,9 @@ public sealed class AdoExtractor : IAdoExtractor
         }
 
         var commitments = new List<RawCommitment>();
+        var since = DateTimeOffset.UtcNow.AddDays(-7);
 
-        // List open PRs in the project
+        // ── 1. Open PRs → unresolved review threads → commitments ─────────────
         var prsUrl = $"https://dev.azure.com/{_adoOrg}/{_adoProject}/_apis/git/pullrequests" +
                      $"?api-version=7.1&searchCriteria.status=active&$top=50";
 
@@ -101,7 +102,44 @@ public sealed class AdoExtractor : IAdoExtractor
             }
         }
 
-        _logger.LogInformation("ADO extractor: {Count} raw commitments", commitments.Count);
+        // ── 2. Recently merged PRs → completions ──────────────────────────────
+        var mergedUrl = $"https://dev.azure.com/{_adoOrg}/{_adoProject}/_apis/git/pullrequests" +
+                        $"?api-version=7.1&searchCriteria.status=completed&$top=50";
+
+        var mergedPrs = await GetAdoAsync(mergedUrl, ct);
+        if (mergedPrs is not null)
+        {
+            foreach (var pr in mergedPrs.Value.EnumerateArray())
+            {
+                // Only include PRs closed within the look-back window
+                var closedDateStr = pr.TryGetProperty("closedDate", out var cd) ? cd.GetString() : null;
+                if (closedDateStr is null ||
+                    !DateTimeOffset.TryParse(closedDateStr, out var closedDate) ||
+                    closedDate < since)
+                    continue;
+
+                var prId    = pr.GetProperty("pullRequestId").GetInt32();
+                var prTitle = pr.TryGetProperty("title", out var t) ? t.GetString() ?? $"PR #{prId}" : $"PR #{prId}";
+                var webUrl  = pr.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
+
+                var truncatedTitle = prTitle.Length > 80 ? prTitle[..80] + "…" : prTitle;
+
+                commitments.Add(new RawCommitment(
+                    Title:            $"Merged: {truncatedTitle}",
+                    OwnerUserId:      userId,
+                    OwnerDisplayName: "Me",
+                    SourceType:       CommitmentSourceType.Ado,
+                    SourceUrl:        webUrl,
+                    ExtractedAt:      closedDate,
+                    DueAt:            null,
+                    Confidence:       1.0,
+                    WatcherUserIds:   [],
+                    SourceContext:    $"PR #{prId} merged {closedDate:MMM d}",
+                    ItemKind:         ItemKind.Completion));
+            }
+        }
+
+        _logger.LogInformation("ADO extractor: {Count} raw signals (commitments + completions)", commitments.Count);
         return commitments;
     }
 
