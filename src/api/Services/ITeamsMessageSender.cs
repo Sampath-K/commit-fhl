@@ -7,7 +7,8 @@ namespace CommitApi.Services;
 public interface ITeamsMessageSender
 {
     /// <summary>
-    /// Sends <paramref name="messageContent"/> as a 1:1 Teams message to each named recipient.
+    /// Sends <paramref name="messageContent"/> as a Teams group chat to all named recipients.
+    /// The group chat is named after <paramref name="topic"/> (truncated to 50 chars).
     /// Silently skips recipients whose OIDs cannot be resolved.
     /// </summary>
     Task SendAsync(
@@ -15,5 +16,6 @@ public interface ITeamsMessageSender
         string   senderUserId,
         string   messageContent,
         string[] recipientNames,
+        string   topic,
         CancellationToken ct = default);
 }

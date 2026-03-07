@@ -26,9 +26,8 @@ public sealed class GraphClientFactory : IGraphClientFactory
         "https://graph.microsoft.com/Chat.ReadWrite",
         "https://graph.microsoft.com/ChatMessage.Send",
         "https://graph.microsoft.com/Mail.Read",
-        "https://graph.microsoft.com/Calendars.ReadWrite",
+        "https://graph.microsoft.com/Calendars.Read",
         "https://graph.microsoft.com/OnlineMeetings.Read",
-        "https://graph.microsoft.com/Presence.Read",
     ];
 
     public GraphClientFactory(string tenantId, string clientId, string clientSecret,
@@ -51,6 +50,36 @@ public sealed class GraphClientFactory : IGraphClientFactory
             bearerToken);
 
         return new GraphServiceClient(credential, GraphScopes);
+    }
+
+    /// <inheritdoc />
+    public async Task<string> GetOboTokenAsync(string bearerToken, CancellationToken ct = default)
+    {
+        try
+        {
+            var app = ConfidentialClientApplicationBuilder
+                .Create(_clientId)
+                .WithClientSecret(_clientSecret)
+                .WithAuthority($"https://login.microsoftonline.com/{_tenantId}")
+                .Build();
+
+            var result = await app
+                .AcquireTokenOnBehalfOf(
+                    new[] { "https://graph.microsoft.com/.default" },
+                    new UserAssertion(bearerToken))
+                .ExecuteAsync(ct);
+
+            return result.AccessToken;
+        }
+        catch (CommitException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OBO token acquisition failed");
+            throw new AuthException($"Failed to acquire OBO token: {ex.Message}");
+        }
     }
 
     /// <inheritdoc />

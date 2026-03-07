@@ -74,4 +74,40 @@ public class EisenhowerScorerTests
         var result     = _sut.Score(commitment);
         Assert.Equal("schedule", result);
     }
+
+    [Fact]
+    public void Score_DueIn47Hrs_IsUrgent()
+    {
+        // 47 hours < 48 threshold → urgent
+        var commitment = Make(dueAt: DateTimeOffset.UtcNow.AddHours(47));
+        var result     = _sut.Score(commitment);
+        Assert.Equal("delegate", result); // urgent=true, important=false
+    }
+
+    [Fact]
+    public void Score_DueIn49Hrs_IsNotUrgent()
+    {
+        // 49 hours > 48 threshold → not urgent
+        var commitment = Make(dueAt: DateTimeOffset.UtcNow.AddHours(49));
+        var result     = _sut.Score(commitment);
+        Assert.Equal("defer", result); // urgent=false, important=false
+    }
+
+    [Fact]
+    public void Score_Exactly1Watcher_NotImportant()
+    {
+        // 1 watcher < 2 threshold → not important (no due date)
+        var commitment = Make(watchers: ["w1"]);
+        var result     = _sut.Score(commitment);
+        Assert.Equal("defer", result); // urgent=false, important=false
+    }
+
+    [Fact]
+    public void Score_Exactly2Watchers_IsImportant()
+    {
+        // 2 watchers >= 2 threshold → important
+        var commitment = Make(watchers: ["w1", "w2"]);
+        var result     = _sut.Score(commitment);
+        Assert.Equal("schedule", result); // urgent=false, important=true
+    }
 }

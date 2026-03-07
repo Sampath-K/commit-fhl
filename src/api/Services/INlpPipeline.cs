@@ -1,4 +1,5 @@
 using CommitApi.Models.Extraction;
+using CommitApi.Models.Feedback;
 
 namespace CommitApi.Services;
 
@@ -9,10 +10,11 @@ public interface INlpPipeline
 {
     /// <summary>
     /// Analyses a list of transcript chunks and returns refined commitments.
-    /// Low-confidence results (below 0.6) are filtered out.
+    /// Low-confidence results (below the effective threshold) are filtered out.
     /// </summary>
     Task<IReadOnlyList<RawCommitment>> ExtractFromChunksAsync(
         IEnumerable<TranscriptChunk> chunks,
+        UserSignalProfile? profile = null,
         CancellationToken ct = default);
 
     /// <summary>
@@ -20,6 +22,7 @@ public interface INlpPipeline
     /// </summary>
     Task<RawCommitment?> RefineAsync(
         RawCommitment heuristic,
+        UserSignalProfile? profile = null,
         CancellationToken ct = default);
 
     /// <summary>

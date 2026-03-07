@@ -4,6 +4,7 @@ using System.Text.Json;
 using Azure.AI.OpenAI;
 using CommitApi.Exceptions;
 using CommitApi.Models.Extraction;
+using CommitApi.Models.Feedback;
 using OpenAI.Chat;
 
 namespace CommitApi.Services;
@@ -43,21 +44,24 @@ public sealed class NlpPipeline : INlpPipeline
     /// <inheritdoc/>
     public async Task<IReadOnlyList<RawCommitment>> ExtractFromChunksAsync(
         IEnumerable<TranscriptChunk> chunks,
+        UserSignalProfile? profile = null,
         CancellationToken ct = default)
     {
         if (_aiClient is null) return [];
 
-        var sw     = Stopwatch.StartNew();
-        var groups = chunks.GroupBy(c => c.MeetingId);
-        var results = new List<RawCommitment>();
+        var effectiveMin = MinConfidence + (profile?.ConfidenceAdjustment ?? 0.0);
+        var systemPrompt = BuildSystemPrompt(profile);
+        var sw           = Stopwatch.StartNew();
+        var groups       = chunks.GroupBy(c => c.MeetingId);
+        var results      = new List<RawCommitment>();
 
         foreach (var meeting in groups)
         {
             var transcript = BuildTranscriptText(meeting);
             if (transcript.Length < 50) continue;
 
-            var extracted = await CallOpenAiAsync(transcript, CommitmentSourceType.Transcript, ct);
-            results.AddRange(extracted.Where(c => c.Confidence >= MinConfidence));
+            var extracted = await CallOpenAiAsync(transcript, CommitmentSourceType.Transcript, effectiveMin, systemPrompt, ct);
+            results.AddRange(extracted.Where(c => c.Confidence >= effectiveMin));
         }
 
         _logger.LogInformation(
@@ -70,9 +74,13 @@ public sealed class NlpPipeline : INlpPipeline
     /// <inheritdoc/>
     public async Task<RawCommitment?> RefineAsync(
         RawCommitment heuristic,
+        UserSignalProfile? profile = null,
         CancellationToken ct = default)
     {
         if (_aiClient is null) return heuristic;
+
+        var effectiveMin = MinConfidence + (profile?.ConfidenceAdjustment ?? 0.0);
+        var systemPrompt = BuildSystemPrompt(profile);
 
         var prompt = $$"""
             Text: "{{heuristic.SourceContext}}"
@@ -86,7 +94,7 @@ public sealed class NlpPipeline : INlpPipeline
             var client   = _aiClient.GetChatClient(_deployment);
             var response = await client.CompleteChatAsync(
             [
-                new SystemChatMessage(SystemPrompt),
+                new SystemChatMessage(systemPrompt),
                 new UserChatMessage(prompt)
             ], cancellationToken: ct);
 
@@ -94,7 +102,7 @@ public sealed class NlpPipeline : INlpPipeline
             using var doc = JsonDocument.Parse(ExtractJson(text));
 
             var confidence = doc.RootElement.TryGetProperty("confidence", out var conf) ? conf.GetDouble() : heuristic.Confidence;
-            if (confidence < MinConfidence) return null;
+            if (confidence < effectiveMin) return null;
 
             var title   = doc.RootElement.TryGetProperty("title", out var t) ? t.GetString() ?? heuristic.Title : heuristic.Title;
             var dueDate = doc.RootElement.TryGetProperty("dueDate", out var d) && d.GetString() is { } ds && ds != "null"
@@ -113,6 +121,8 @@ public sealed class NlpPipeline : INlpPipeline
     private async Task<List<RawCommitment>> CallOpenAiAsync(
         string text,
         CommitmentSourceType sourceType,
+        double effectiveMin,
+        string systemPrompt,
         CancellationToken ct)
     {
         var prompt = $"""
@@ -126,7 +136,7 @@ public sealed class NlpPipeline : INlpPipeline
             - confidence: 0-1 likelihood this is a real commitment
             - watchers: array of other people mentioned who care about this task
 
-            Return a JSON array. Only include items with confidence >= 0.6.
+            Return a JSON array. Only include items with confidence >= {effectiveMin:F2}.
 
             Text:
             {text[..Math.Min(text.Length, 3000)]}
@@ -137,7 +147,7 @@ public sealed class NlpPipeline : INlpPipeline
             var client   = _aiClient!.GetChatClient(_deployment);
             var response = await client.CompleteChatAsync(
             [
-                new SystemChatMessage(SystemPrompt),
+                new SystemChatMessage(systemPrompt),
                 new UserChatMessage(prompt)
             ], cancellationToken: ct);
 
@@ -158,7 +168,7 @@ public sealed class NlpPipeline : INlpPipeline
                     ? w.EnumerateArray().Select(x => x.GetString() ?? "").Where(s => s.Length > 0).ToArray()
                     : [];
 
-                if (string.IsNullOrWhiteSpace(title) || confidence < MinConfidence) continue;
+                if (string.IsNullOrWhiteSpace(title) || confidence < effectiveMin) continue;
 
                 results.Add(new RawCommitment(
                     Title:            title,
@@ -254,6 +264,30 @@ public sealed class NlpPipeline : INlpPipeline
             _logger.LogWarning(ex, "NLP resolution classification failed — returning defaults");
             return defaults;
         }
+    }
+
+    private static string BuildSystemPrompt(UserSignalProfile? profile)
+    {
+        if (profile is null || (profile.NlpPositiveExamples.Count == 0 && profile.NlpNegativeExamples.Count == 0))
+            return SystemPrompt;
+
+        var sb = new StringBuilder(SystemPrompt);
+
+        if (profile.NlpPositiveExamples.Count > 0)
+        {
+            sb.AppendLine("\nPOSITIVE EXAMPLES (extract commitments like these):");
+            foreach (var ex in profile.NlpPositiveExamples)
+                sb.AppendLine($"- \"{ex}\"");
+        }
+
+        if (profile.NlpNegativeExamples.Count > 0)
+        {
+            sb.AppendLine("\nNEGATIVE EXAMPLES (do not extract these — confirmed non-commitments for this user):");
+            foreach (var ex in profile.NlpNegativeExamples)
+                sb.AppendLine($"- \"{ex}\"");
+        }
+
+        return sb.ToString();
     }
 
     private static string BuildTranscriptText(IEnumerable<TranscriptChunk> chunks)

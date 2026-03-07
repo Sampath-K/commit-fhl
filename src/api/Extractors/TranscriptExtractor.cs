@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using CommitApi.Auth;
 using CommitApi.Exceptions;
+using CommitApi.Extractors.Helpers;
 using CommitApi.Models.Extraction;
 
 namespace CommitApi.Extractors;
@@ -85,88 +86,9 @@ public sealed class TranscriptExtractor : ITranscriptExtractor
         return chunks;
     }
 
-    /// <summary>
-    /// Parses WebVTT transcript content into per-speaker chunks.
-    /// VTT format: speaker lines begin with "WEBVTT" followed by cue blocks.
-    /// </summary>
     private static List<TranscriptChunk> ParseVtt(
         string vtt,
         string meetingId,
         string? meetingSubject)
-    {
-        var chunks = new List<TranscriptChunk>();
-        var lines  = vtt.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-        // Each cue block: timestamp line → "SpeakerName: text" line(s)
-        var cueTimestamp = DateTimeOffset.UtcNow; // fallback
-        string? lastSpeaker = null;
-        string? lastUserId  = null;
-        var textBuffer      = new System.Text.StringBuilder();
-
-        void FlushChunk()
-        {
-            if (lastSpeaker is null || textBuffer.Length == 0) return;
-            chunks.Add(new TranscriptChunk(
-                SpeakerName:    lastSpeaker,
-                SpeakerUserId:  lastUserId ?? lastSpeaker,
-                Text:           textBuffer.ToString().Trim(),
-                MeetingId:      meetingId,
-                Timestamp:      cueTimestamp,
-                MeetingSubject: meetingSubject));
-            textBuffer.Clear();
-        }
-
-        foreach (var line in lines)
-        {
-            // Skip WEBVTT header and NOTE lines
-            if (line.StartsWith("WEBVTT", StringComparison.OrdinalIgnoreCase)) continue;
-            if (line.StartsWith("NOTE", StringComparison.OrdinalIgnoreCase)) continue;
-
-            // Timestamp line: "00:00:00.000 --> 00:00:05.000"
-            if (line.Contains("-->"))
-            {
-                FlushChunk();
-                // Parse start time if possible
-                var parts = line.Split("-->")[0].Trim();
-                if (TimeSpan.TryParse(parts, out var ts))
-                    cueTimestamp = DateTimeOffset.UtcNow.Add(ts); // relative for now
-                continue;
-            }
-
-            // Speaker line: "<SpeakerName> <userId>: text" or "SpeakerName: text"
-            if (line.Contains(':'))
-            {
-                var colonIdx = line.IndexOf(':');
-                var speaker  = line[..colonIdx].Trim();
-                var text     = line[(colonIdx + 1)..].Trim();
-
-                if (speaker != lastSpeaker)
-                {
-                    FlushChunk();
-                    lastSpeaker = speaker;
-                    // userId embedded as "<userId>" in some VTT flavours
-                    lastUserId = ExtractUserId(speaker);
-                    lastSpeaker = CleanSpeakerName(speaker);
-                }
-
-                textBuffer.Append(text).Append(' ');
-            }
-        }
-
-        FlushChunk();
-        return chunks;
-    }
-
-    private static string? ExtractUserId(string speaker)
-    {
-        var start = speaker.IndexOf('<');
-        var end   = speaker.IndexOf('>');
-        return start >= 0 && end > start ? speaker[(start + 1)..end] : null;
-    }
-
-    private static string CleanSpeakerName(string speaker)
-    {
-        var start = speaker.IndexOf('<');
-        return start > 0 ? speaker[..start].Trim() : speaker.Trim();
-    }
+        => VttParser.Parse(vtt, meetingId, meetingSubject);
 }

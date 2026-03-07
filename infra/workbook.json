@@ -1,0 +1,487 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Commit-FHL Flow Debug Dashboard\nMonitors all 8 message flows: Webhook, Extraction, Graph Build, Cascade, Polling, Risk Detection, Approval, Subscription.\n\n> App Insights ingestion lag: ~2-5 min. For sub-second live monitoring use **App Insights → Live Metrics**."
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "link-overview",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Flow Overview",
+            "subTarget": "overview",
+            "style": "link"
+          },
+          {
+            "id": "link-extraction",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Extraction Pipeline",
+            "subTarget": "extraction",
+            "style": "link"
+          },
+          {
+            "id": "link-events",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Live Event Log",
+            "subTarget": "events",
+            "style": "link"
+          },
+          {
+            "id": "link-errors",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Errors and Warnings",
+            "subTarget": "errors",
+            "style": "link"
+          },
+          {
+            "id": "link-services",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Background Services",
+            "subTarget": "services",
+            "style": "link"
+          },
+          {
+            "id": "link-approvals",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Approval Flow",
+            "subTarget": "approvals",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tab-selector"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Select a tab above to explore a specific flow."
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEmpty"
+      },
+      "name": "no-tab-hint"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Flow Activity Overview\nEvent counts per flow, binned to 5-minute intervals over the last 2 hours."
+            },
+            "name": "overview-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union\n  (customEvents\n   | where name in (\"CommitUserAction\", \"CommitBusinessKpi\")\n   | extend flow = case(\n       tostring(customDimensions[\"featureArea\"]) == \"commitments\", \"Extraction\",\n       tostring(customDimensions[\"featureArea\"]) == \"graph\", \"GraphBuild\",\n       tostring(customDimensions[\"featureArea\"]) == \"approvals\", \"Approval\",\n       tostring(customDimensions[\"kpiType\"]) == \"webhook-received\", \"Webhook\",\n       \"Other\")\n   | project timestamp, flow),\n  (traces\n   | extend flow = case(\n       message has \"WebhookHandler\", \"Webhook\",\n       message has \"ExtractionPolling\", \"Polling\",\n       message has \"SubscriptionManager\" or message has \"SubscriptionRenewal\", \"Subscription\",\n       message has \"RiskDetector\", \"RiskDetection\",\n       \"Other\")\n   | where flow != \"Other\"\n   | project timestamp, flow)\n| where timestamp > ago(2h)\n| summarize count() by bin(timestamp, 5m), flow\n| render timechart",
+              "size": 0,
+              "title": "Events per flow (last 2h, 5-min bins)",
+              "timeContext": { "durationMs": 7200000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "timechart"
+            },
+            "name": "overview-timechart"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Last Activity per Component"
+            },
+            "name": "overview-last-activity-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union\n  (customEvents\n   | where name in (\"CommitUserAction\", \"CommitBusinessKpi\")\n   | extend component = coalesce(tostring(customDimensions[\"eventType\"]), tostring(customDimensions[\"kpiType\"]), name)\n   | project timestamp, component, message = name),\n  (traces\n   | where customDimensions[\"CategoryName\"] has \"CommitApi\"\n   | extend component = tostring(customDimensions[\"CategoryName\"])\n   | project timestamp, component, message)\n| summarize last_seen = max(timestamp), last_message = take_any(message) by component\n| order by last_seen desc",
+              "size": 0,
+              "title": "Component last-seen",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "last_seen", "formatter": 6 }
+                ]
+              }
+            },
+            "name": "overview-last-activity"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "overview"
+      },
+      "name": "group-overview"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Extraction Pipeline\nFunnel from raw commitments extracted → deduplicated → stored. Per-source breakdown below."
+            },
+            "name": "extraction-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customEvents\n| where name == \"CommitUserAction\"\n  and tostring(customDimensions[\"eventType\"]) == \"extract-background\"\n| where timestamp > ago(24h)\n| extend raw     = toint(customDimensions[\"raw\"])\n| extend deduped = toint(customDimensions[\"deduped\"])\n| extend stored  = toint(customDimensions[\"stored\"])\n| summarize avg_raw = round(avg(raw), 1), avg_deduped = round(avg(deduped), 1), avg_stored = round(avg(stored), 1), runs = count()",
+              "size": 4,
+              "title": "Extraction funnel averages (last 24h)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": { "columnMatch": "", "formatter": 1 },
+                "leftContent": { "columnMatch": "avg_raw", "formatter": 12, "formatOptions": { "palette": "blue" } }
+              }
+            },
+            "name": "extraction-funnel"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customEvents\n| where name == \"CommitUserAction\"\n  and tostring(customDimensions[\"eventType\"]) == \"extract-background\"\n| where timestamp > ago(24h)\n| extend raw     = toint(customDimensions[\"raw\"])\n| extend deduped = toint(customDimensions[\"deduped\"])\n| extend stored  = toint(customDimensions[\"stored\"])\n| summarize avg_raw = avg(raw), avg_deduped = avg(deduped), avg_stored = avg(stored)\n| project\n    Stage   = pack_array(\"Raw\", \"Deduped\", \"Stored\"),\n    Count   = pack_array(round(avg_raw,1), round(avg_deduped,1), round(avg_stored,1))\n| mv-expand Stage, Count\n| project tostring(Stage), todouble(Count)",
+              "size": 0,
+              "title": "Raw → Deduped → Stored (24h averages)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "barchart"
+            },
+            "name": "extraction-bar"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Per-source Breakdown"
+            },
+            "name": "extraction-source-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\n| where timestamp > ago(24h)\n| where message has_any (\"Chat extractor\", \"Email extractor\", \"ADO extractor\", \"DriveExtractor\", \"PlannerExtractor\", \"Transcript extractor\")\n| extend source = case(\n    message has \"Chat\", \"Chat\",\n    message has \"Email\", \"Email\",\n    message has \"ADO\", \"ADO\",\n    message has \"Drive\", \"Drive\",\n    message has \"Planner\", \"Planner\",\n    message has \"Transcript\", \"Transcript\",\n    \"Other\")\n| summarize runs = count(), last_run = max(timestamp) by source\n| order by runs desc",
+              "size": 0,
+              "title": "Per-source extractor runs (last 24h)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table"
+            },
+            "name": "extraction-sources"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "extraction"
+      },
+      "name": "group-extraction"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Live Event Log\nMost recent 200 events across all flows, last 2 hours. Includes both structured `customEvents` and `traces` from ILogger."
+            },
+            "name": "events-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union\n  (customEvents\n   | where timestamp > ago(2h)\n   | where name in (\"CommitUserAction\", \"CommitBusinessKpi\")\n   | extend flow = case(\n       tostring(customDimensions[\"featureArea\"]) == \"commitments\", \"Extraction\",\n       tostring(customDimensions[\"featureArea\"]) == \"graph\", \"GraphBuild\",\n       tostring(customDimensions[\"featureArea\"]) == \"approvals\", \"Approval\",\n       tostring(customDimensions[\"kpiType\"]) == \"webhook-received\", \"Webhook\",\n       \"System\")\n   | extend component = coalesce(tostring(customDimensions[\"eventType\"]), tostring(customDimensions[\"kpiType\"]), name)\n   | extend msg = strcat(name, \": \", component,\n       iff(isnotempty(tostring(customDimensions[\"raw\"])),      strcat(\" raw=\", tostring(customDimensions[\"raw\"])), \"\"),\n       iff(isnotempty(tostring(customDimensions[\"stored\"])),   strcat(\" stored=\", tostring(customDimensions[\"stored\"])), \"\"),\n       iff(isnotempty(tostring(customDimensions[\"edges\"])),    strcat(\" edges=\", tostring(customDimensions[\"edges\"])), \"\"),\n       iff(isnotempty(tostring(customDimensions[\"affected\"])), strcat(\" affected=\", tostring(customDimensions[\"affected\"])), \"\"),\n       iff(isnotempty(tostring(customDimensions[\"decision\"])), strcat(\" decision=\", tostring(customDimensions[\"decision\"])), \"\"))\n   | project timestamp, flow, level = \"Info\", component, message = msg),\n  (traces\n   | where timestamp > ago(2h)\n   | where customDimensions[\"CategoryName\"] has \"CommitApi\"\n   | extend flow = case(\n       message has \"Webhook\", \"Webhook\",\n       message has \"Extraction\" or message has \"Extractor\" or message has \"NlpPipeline\", \"Extraction\",\n       message has \"DependencyLinker\", \"GraphBuild\",\n       message has \"CascadeSimulator\", \"Cascade\",\n       message has \"ExtractionPolling\", \"Polling\",\n       message has \"RiskDetector\", \"RiskDetection\",\n       message has \"TeamsMessage\" or message has \"Approval\" or message has \"AdaptiveCard\", \"Approval\",\n       message has \"Subscription\", \"Subscription\",\n       \"System\")\n   | extend level = case(severityLevel >= 3, \"Error\", severityLevel == 2, \"Warning\", \"Info\")\n   | extend component = tostring(customDimensions[\"CategoryName\"])\n   | project timestamp, flow, level, component, message)\n| order by timestamp desc\n| take 200",
+              "size": 0,
+              "title": "Live event log (last 2h, newest first)",
+              "timeContext": { "durationMs": 7200000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "timestamp", "formatter": 6 },
+                  {
+                    "columnMatch": "level",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "Error",   "representation": "4", "text": "Error" },
+                        { "operator": "==", "thresholdValue": "Warning", "representation": "2", "text": "Warning" },
+                        { "operator": "Default",                          "representation": "success", "text": "Info" }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true
+              }
+            },
+            "name": "events-table"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "events"
+      },
+      "name": "group-events"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Errors and Warnings\nError and warning timeline (15-min bins, last 4h) and exception details."
+            },
+            "name": "errors-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union\n  (exceptions\n   | where timestamp > ago(4h)\n   | extend level = \"Error\"),\n  (traces\n   | where timestamp > ago(4h) and severityLevel >= 2\n   | where customDimensions[\"CategoryName\"] has \"CommitApi\"\n   | extend level = iff(severityLevel >= 3, \"Error\", \"Warning\"))\n| summarize count() by bin(timestamp, 15m), level\n| render timechart",
+              "size": 0,
+              "title": "Error and warning rate (last 4h, 15-min bins)",
+              "timeContext": { "durationMs": 14400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "timechart"
+            },
+            "name": "errors-chart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union\n  (exceptions\n   | where timestamp > ago(4h)\n   | project timestamp, type, operation = operation_Name, message = outerMessage, level = \"Error\"),\n  (traces\n   | where timestamp > ago(4h) and severityLevel >= 2\n   | where customDimensions[\"CategoryName\"] has \"CommitApi\"\n   | project timestamp, type = \"Trace\", operation = cloud_RoleName, message, level = iff(severityLevel >= 3, \"Error\", \"Warning\"))\n| order by timestamp desc",
+              "size": 0,
+              "title": "Recent errors and warnings (last 4h)",
+              "timeContext": { "durationMs": 14400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "timestamp", "formatter": 6 },
+                  {
+                    "columnMatch": "level",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "Error",   "representation": "4", "text": "Error" },
+                        { "operator": "==", "thresholdValue": "Warning", "representation": "2", "text": "Warning" },
+                        { "operator": "Default",                          "representation": "success", "text": "Info" }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true
+              }
+            },
+            "name": "errors-table"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "errors"
+      },
+      "name": "group-errors"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Background Services Health\nPolling cycle status and subscription management health."
+            },
+            "name": "services-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\n| where customDimensions[\"CategoryName\"] has \"ExtractionPollingService\"\n| where timestamp > ago(24h)\n| summarize\n    last_cycle   = max(timestamp),\n    total_cycles = count()\n| extend last_cycle_ago = format_timespan(now() - last_cycle, \"hh:mm:ss\")",
+              "size": 4,
+              "title": "Polling service (last 24h)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true
+              }
+            },
+            "name": "services-polling-tiles"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\n| where customDimensions[\"CategoryName\"] has_any (\"SubscriptionManager\", \"SubscriptionRenewal\")\n| where timestamp > ago(24h)\n| summarize total = count(), errors = countif(severityLevel >= 3) by bin(timestamp, 1h)\n| render timechart",
+              "size": 0,
+              "title": "Subscription events (last 24h, 1h bins)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "timechart"
+            },
+            "name": "services-subscription-chart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\n| where timestamp > ago(24h)\n| where customDimensions[\"CategoryName\"] has_any (\"ExtractionPollingService\", \"SubscriptionManager\", \"SubscriptionRenewal\")\n| extend component = tostring(customDimensions[\"CategoryName\"])\n| extend level = case(severityLevel >= 3, \"Error\", severityLevel == 2, \"Warning\", \"Info\")\n| project timestamp, component, level, message\n| order by timestamp desc\n| take 50",
+              "size": 0,
+              "title": "Recent background service events (last 24h)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "timestamp", "formatter": 6 }
+                ],
+                "filter": true
+              }
+            },
+            "name": "services-log"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "services"
+      },
+      "name": "group-services"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Approval Flow\nDecision breakdown and recent approval events (last 24h)."
+            },
+            "name": "approvals-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customEvents\n| where name == \"CommitUserAction\"\n  and tostring(customDimensions[\"eventType\"]) == \"approval\"\n| where timestamp > ago(24h)\n| extend decision = tostring(customDimensions[\"decision\"])\n| summarize count() by decision",
+              "size": 3,
+              "title": "Approval decisions (last 24h)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "piechart"
+            },
+            "name": "approvals-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customEvents\n| where name == \"CommitUserAction\"\n  and tostring(customDimensions[\"eventType\"]) == \"approval\"\n| where timestamp > ago(24h)\n| summarize\n    total        = count(),\n    approved     = countif(tostring(customDimensions[\"decision\"]) == \"approve\"),\n    skipped      = countif(tostring(customDimensions[\"decision\"]) == \"skip\"),\n    edited       = countif(tostring(customDimensions[\"decision\"]) == \"edit\")",
+              "size": 4,
+              "title": "Approval totals (last 24h)",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": { "showBorder": true }
+            },
+            "name": "approvals-tiles"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customEvents\n| where name == \"CommitUserAction\"\n  and tostring(customDimensions[\"eventType\"]) == \"approval\"\n| where timestamp > ago(24h)\n| extend decision = tostring(customDimensions[\"decision\"])\n| extend result   = tostring(customDimensions[\"result\"])\n| extend userId   = tostring(customDimensions[\"userId\"])\n| project timestamp, decision, result, userId\n| order by timestamp desc\n| take 20",
+              "size": 0,
+              "title": "Last 20 approval events",
+              "timeContext": { "durationMs": 86400000 },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "timestamp", "formatter": 6 }
+                ],
+                "filter": true
+              }
+            },
+            "name": "approvals-table"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "approvals"
+      },
+      "name": "group-approvals"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

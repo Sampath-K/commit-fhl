@@ -20,6 +20,14 @@ public interface IGraphClientFactory
     GraphServiceClient CreateOnBehalfOf(string bearerToken);
 
     /// <summary>
+    /// Exchanges the user's bearer token for a Graph-scoped OBO access token string.
+    /// Use this to get a token suitable for direct HttpClient calls to Graph APIs.
+    /// </summary>
+    /// <param name="bearerToken">The user's incoming bearer token (Teams SSO or app-scoped).</param>
+    /// <returns>Access token with audience https://graph.microsoft.com.</returns>
+    Task<string> GetOboTokenAsync(string bearerToken, CancellationToken ct = default);
+
+    /// <summary>
     /// Resolves the display name and AAD Object ID for the token owner by calling /me.
     /// Used for the health check and to validate Graph connectivity.
     /// </summary>

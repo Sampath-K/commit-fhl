@@ -15,14 +15,16 @@ public sealed class SubscriptionManager : ISubscriptionManager
     private readonly IGraphClientFactory _graphFactory;
     private readonly ILogger<SubscriptionManager> _logger;
     private readonly string _notificationUrl;
+    private readonly string _lifecycleNotificationUrl;
     private readonly string _clientState;
 
-    // Subscription resources to monitor
-    private static readonly (string Resource, string ChangeTypes, string Description)[] Subscriptions =
+    // Subscription resources to monitor.
+    // NeedsLifecycle: Graph requires a lifecycleNotificationUrl for chat subscriptions with expiry > 1h.
+    private static readonly (string Resource, string ChangeTypes, string Description, bool NeedsLifecycle)[] Subscriptions =
     [
-        ("/me/chats/getAllMessages",               "created,updated", "Teams chat messages"),
-        ("/me/mailFolders/inbox/messages",         "created",         "Outlook inbox messages"),
-        ("/me/drive/root",                         "updated",         "OneDrive file changes"),
+        ("/me/chats/getAllMessages",               "created,updated", "Teams chat messages",  true),
+        ("/me/mailFolders/inbox/messages",         "created",         "Outlook inbox messages", false),
+        ("/me/drive/root",                         "updated",         "OneDrive file changes",  false),
     ];
 
     // Graph subscriptions expire; we renew when < 1 day remains
@@ -34,10 +36,11 @@ public sealed class SubscriptionManager : ISubscriptionManager
         string notificationUrl,
         string clientState)
     {
-        _graphFactory    = graphFactory;
-        _logger          = logger;
-        _notificationUrl = notificationUrl;
-        _clientState     = clientState;
+        _graphFactory              = graphFactory;
+        _logger                    = logger;
+        _notificationUrl           = notificationUrl;
+        _lifecycleNotificationUrl  = notificationUrl + "/lifecycle";
+        _clientState               = clientState;
     }
 
     /// <inheritdoc />
@@ -47,17 +50,18 @@ public sealed class SubscriptionManager : ISubscriptionManager
         var client = _graphFactory.CreateOnBehalfOf(bearerToken);
         var createdIds = new List<string>();
 
-        foreach (var (resource, changeTypes, description) in Subscriptions)
+        foreach (var (resource, changeTypes, description, needsLifecycle) in Subscriptions)
         {
             try
             {
                 var subscription = new Subscription
                 {
-                    ChangeType        = changeTypes,
-                    NotificationUrl   = _notificationUrl,
-                    Resource          = resource,
-                    ExpirationDateTime = DateTimeOffset.UtcNow.Add(SubscriptionLifetime),
-                    ClientState       = _clientState,
+                    ChangeType               = changeTypes,
+                    NotificationUrl          = _notificationUrl,
+                    Resource                 = resource,
+                    ExpirationDateTime       = DateTimeOffset.UtcNow.Add(SubscriptionLifetime),
+                    ClientState              = _clientState,
+                    LifecycleNotificationUrl = needsLifecycle ? _lifecycleNotificationUrl : null,
                 };
 
                 var created = await client.Subscriptions.PostAsync(subscription, cancellationToken: ct);

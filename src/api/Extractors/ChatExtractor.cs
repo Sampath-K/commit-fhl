@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using CommitApi.Extractors.Helpers;
 using CommitApi.Models.Extraction;
 
 namespace CommitApi.Extractors;
@@ -15,15 +16,6 @@ public sealed class ChatExtractor : IChatExtractor
 
     private const string GraphV1 = "https://graph.microsoft.com/v1.0";
 
-    // Action-intent phrases that indicate a commitment
-    private static readonly string[] ActionSignals =
-    [
-        "i'll", "i will", "will do", "will send", "will review", "will fix",
-        "will submit", "will complete", "by tomorrow", "by friday", "by eod",
-        "by monday", "by next week", "i can", "let me", "i'll get",
-        "on it", "taking this", "i own", "i'll own"
-    ];
-
     public ChatExtractor(
         ILogger<ChatExtractor> logger,
         IHttpClientFactory httpClientFactory)
@@ -38,11 +30,11 @@ public sealed class ChatExtractor : IChatExtractor
         int days = 3,
         CancellationToken ct = default)
     {
-        var since = DateTimeOffset.UtcNow.AddDays(-days).ToString("o");
+        var sinceOffset = DateTimeOffset.UtcNow.AddDays(-days);
         var commitments = new List<RawCommitment>();
 
         // Fetch the user's chats (DMs and group chats)
-        var chatsUrl = $"{GraphV1}/me/chats?$select=id,chatType,topic&$top=20";
+        var chatsUrl = $"{GraphV1}/me/chats";
         var chats    = await GetPagedAsync(chatsUrl, bearerToken, ct);
 
         foreach (var chat in chats)
@@ -57,14 +49,21 @@ public sealed class ChatExtractor : IChatExtractor
             var artifactName = !string.IsNullOrWhiteSpace(topic)
                 ? topic : chatType == "oneOnOne" ? "Direct message" : "Group chat";
 
-            var messagesUrl = $"{GraphV1}/me/chats/{chatId}/messages" +
-                              $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
-                              $"&$select=id,from,body,createdDateTime,webUrl&$top=50";
+            // Graph does not support $filter on createdDateTime for chat messages — fetch
+            // newest 50 and filter client-side by the since threshold.
+            var messagesUrl = $"{GraphV1}/me/chats/{chatId}/messages?$top=50";
 
             var messages = await GetPagedAsync(messagesUrl, bearerToken, ct);
 
             foreach (var msg in messages)
             {
+                // Filter by date client-side (Graph chat messages API doesn't support $filter on createdDateTime)
+                if (msg.TryGetProperty("createdDateTime", out var cdt))
+                {
+                    if (DateTimeOffset.TryParse(cdt.GetString(), out var msgTime) && msgTime < sinceOffset)
+                        continue;
+                }
+
                 var bodyContent = msg.TryGetProperty("body", out var body)
                     ? body.TryGetProperty("content", out var c) ? c.GetString() : null
                     : null;
@@ -110,7 +109,7 @@ public sealed class ChatExtractor : IChatExtractor
         }
 
         // ── Scan joined-team channel messages ─────────────────────────────────
-        var teamsUrl = $"{GraphV1}/me/joinedTeams?$select=id,displayName&$top=10";
+        var teamsUrl = $"{GraphV1}/me/joinedTeams";
         var teams    = await GetPagedAsync(teamsUrl, bearerToken, ct);
 
         foreach (var team in teams)
@@ -118,7 +117,7 @@ public sealed class ChatExtractor : IChatExtractor
             var teamId      = team.GetProperty("id").GetString() ?? "";
             var teamName    = team.TryGetProperty("displayName", out var tdn) ? tdn.GetString() : null;
 
-            var channelsUrl = $"{GraphV1}/teams/{teamId}/channels?$select=id,displayName&$top=5";
+            var channelsUrl = $"{GraphV1}/teams/{teamId}/channels";
             var channels    = await GetPagedAsync(channelsUrl, bearerToken, ct);
 
             foreach (var channel in channels)
@@ -126,15 +125,21 @@ public sealed class ChatExtractor : IChatExtractor
                 var channelId          = channel.GetProperty("id").GetString() ?? "";
                 var channelDisplayName = channel.TryGetProperty("displayName", out var cdn) ? cdn.GetString() : null;
 
+                // Graph does not support $filter on createdDateTime for channel messages either
                 var channelMessagesUrl =
-                    $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages" +
-                    $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
-                    $"&$select=id,from,body,createdDateTime,webUrl&$top=30";
+                    $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages?$top=30";
 
                 var channelMessages = await GetPagedAsync(channelMessagesUrl, bearerToken, ct);
 
                 foreach (var msg in channelMessages)
                 {
+                    // Filter by date client-side
+                    if (msg.TryGetProperty("createdDateTime", out var cdt2))
+                    {
+                        if (DateTimeOffset.TryParse(cdt2.GetString(), out var msgTime2) && msgTime2 < sinceOffset)
+                            continue;
+                    }
+
                     var bodyContent = msg.TryGetProperty("body", out var body)
                         ? body.TryGetProperty("content", out var c) ? c.GetString() : null
                         : null;
@@ -183,41 +188,10 @@ public sealed class ChatExtractor : IChatExtractor
         return commitments;
     }
 
-    private static bool HasActionSignal(string text)
-    {
-        var lower = text.ToLowerInvariant();
-        return ActionSignals.Any(signal => lower.Contains(signal));
-    }
-
-    private static string InferTitle(string text)
-    {
-        // Take first sentence (up to 80 chars) as the title
-        var end = text.IndexOfAny(['.', '!', '\n'], 0);
-        var raw = end > 0 ? text[..end] : text;
-        raw = raw.Trim();
-        return raw.Length > 80 ? raw[..80] + "…" : raw;
-    }
-
-    private static DateTimeOffset? InferDueDate(string text)
-    {
-        var lower = text.ToLowerInvariant();
-        var now   = DateTimeOffset.UtcNow;
-        if (lower.Contains("by eod") || lower.Contains("today"))   return now.Date.AddHours(18);
-        if (lower.Contains("tomorrow"))                             return now.AddDays(1).Date.AddHours(18);
-        if (lower.Contains("by friday") || lower.Contains("end of week"))
-        {
-            var daysUntilFriday = ((int)DayOfWeek.Friday - (int)now.DayOfWeek + 7) % 7;
-            return now.AddDays(daysUntilFriday).Date.AddHours(18);
-        }
-        if (lower.Contains("next week") || lower.Contains("by monday"))
-            return now.AddDays(7 - (int)now.DayOfWeek + 1).Date.AddHours(9);
-        return null;
-    }
-
-    private static string StripHtml(string html)
-    {
-        return System.Text.RegularExpressions.Regex.Replace(html, "<.*?>", " ").Trim();
-    }
+    private static bool HasActionSignal(string text)     => ChatSignals.HasActionSignal(text);
+    private static string InferTitle(string text)         => ChatSignals.InferTitle(text);
+    private static DateTimeOffset? InferDueDate(string text) => ChatSignals.InferDueDate(text);
+    private static string StripHtml(string html)          => ChatSignals.StripHtml(html);
 
     private async Task<List<JsonElement>> GetPagedAsync(
         string url,
@@ -233,7 +207,14 @@ public sealed class ChatExtractor : IChatExtractor
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
             using var resp = await _http.SendAsync(req, ct);
 
-            if (!resp.IsSuccessStatusCode) break;
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errBody = await resp.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Chat extractor: Graph API returned {Status} for {Url} — {Body}",
+                    (int)resp.StatusCode, nextLink,
+                    errBody.Length > 500 ? errBody[..500] : errBody);
+                break;
+            }
 
             var json = await resp.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(json);

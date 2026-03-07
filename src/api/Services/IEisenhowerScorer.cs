@@ -1,5 +1,5 @@
-using CommitApi.Entities;
 using CommitApi.Models.Extraction;
+using CommitApi.Models.Feedback;
 
 namespace CommitApi.Services;
 
@@ -10,7 +10,8 @@ public interface IEisenhowerScorer
 {
     /// <summary>
     /// Computes the priority for <paramref name="commitment"/>.
+    /// The optional <paramref name="profile"/> adjusts the transcript confidence threshold.
     /// </summary>
     /// <returns>One of: urgent-important, schedule, delegate, defer.</returns>
-    string Score(RawCommitment commitment);
+    string Score(RawCommitment commitment, UserSignalProfile? profile = null);
 }

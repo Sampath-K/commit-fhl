@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using CommitApi.Auth;
 using CommitApi.Config;
 using CommitApi.Entities;
 using CommitApi.Repositories;
@@ -38,12 +39,12 @@ public sealed class CommitmentResolutionService : BackgroundService
     private readonly INlpPipeline            _nlp;
     private readonly CommitmentEventBus      _eventBus;
     private readonly IHttpClientFactory      _httpFactory;
+    private readonly IGraphClientFactory     _graphFactory;
     private readonly IConfiguration          _config;
     private readonly ILogger<CommitmentResolutionService> _logger;
 
-    private static readonly TimeSpan CheckInterval   = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan MinAgeToCheck   = TimeSpan.FromHours(4);
-    private const double AutoResolveThreshold        = 0.90;
+    private static readonly TimeSpan CheckInterval   = TimeSpan.FromMinutes(5);
+    private const double AutoResolveThreshold        = 0.80;
 
     // ADO closed/done states
     private static readonly HashSet<string> AdoClosedStates = new(StringComparer.OrdinalIgnoreCase)
@@ -66,16 +67,18 @@ public sealed class CommitmentResolutionService : BackgroundService
         INlpPipeline            nlp,
         CommitmentEventBus      eventBus,
         IHttpClientFactory      httpFactory,
+        IGraphClientFactory     graphFactory,
         IConfiguration          config,
         ILogger<CommitmentResolutionService> logger)
     {
-        _tokenCache  = tokenCache;
-        _repo        = repo;
-        _nlp         = nlp;
-        _eventBus    = eventBus;
-        _httpFactory = httpFactory;
-        _config      = config;
-        _logger      = logger;
+        _tokenCache   = tokenCache;
+        _repo         = repo;
+        _nlp          = nlp;
+        _eventBus     = eventBus;
+        _httpFactory  = httpFactory;
+        _graphFactory = graphFactory;
+        _config       = config;
+        _logger       = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -93,7 +96,20 @@ public sealed class CommitmentResolutionService : BackgroundService
 
                 try
                 {
-                    await CheckUserAsync(userId, entry.Token, ct);
+                    // Exchange the cached SSO token for a Graph-scoped OBO token
+                    string graphToken;
+                    try
+                    {
+                        graphToken = await _graphFactory.GetOboTokenAsync(entry.Token, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "CommitmentResolutionService: OBO exchange failed for user {Hash} — skipping",
+                            PiiScrubber.HashValue(userId));
+                        continue;
+                    }
+
+                    await CheckUserAsync(userId, graphToken, ct);
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -107,12 +123,10 @@ public sealed class CommitmentResolutionService : BackgroundService
 
     private async Task CheckUserAsync(string userId, string bearerToken, CancellationToken ct)
     {
-        var all     = await _repo.ListByOwnerAsync(userId, ct: ct);
-        var cutoff  = DateTimeOffset.UtcNow.Subtract(MinAgeToCheck);
+        var all = await _repo.ListByOwnerAsync(userId, ct: ct);
 
-        // Only pending/in-progress commitments old enough to have follow-up activity
         var pending = all
-            .Where(e => e.Status is "pending" or "in-progress" && e.CommittedAt <= cutoff)
+            .Where(e => e.Status is "pending" or "in-progress")
             .ToList();
 
         if (pending.Count == 0) return;
@@ -307,27 +321,45 @@ public sealed class CommitmentResolutionService : BackgroundService
         var http      = _httpFactory.CreateClient("graph");
         string messagesUrl;
 
+        string? teamId    = null;
+        string? channelId = null;
+        string? chatId    = null;
+        string? messageId = root.TryGetProperty("messageId", out var mid0) ? mid0.GetString() : null;
+
         if (chatType == "channel")
         {
-            var teamId    = root.TryGetProperty("teamId",    out var tid) ? tid.GetString() : null;
-            var channelId = root.TryGetProperty("channelId", out var cid) ? cid.GetString() : null;
+            teamId    = root.TryGetProperty("teamId",    out var tid) ? tid.GetString() : null;
+            channelId = root.TryGetProperty("channelId", out var cid) ? cid.GetString() : null;
             if (teamId is null || channelId is null) return (false, null);
 
-            messagesUrl = $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages" +
-                          $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
-                          $"&$select=id,body,createdDateTime,from&$top=20";
+            messagesUrl = $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages?$top=30";
         }
         else
         {
-            var chatId = root.TryGetProperty("chatId", out var cid) ? cid.GetString() : null;
+            chatId = root.TryGetProperty("chatId", out var cid) ? cid.GetString() : null;
             if (chatId is null) return (false, null);
 
-            messagesUrl = $"{GraphV1}/me/chats/{chatId}/messages" +
-                          $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
-                          $"&$select=id,body,createdDateTime,from&$top=20";
+            messagesUrl = $"{GraphV1}/me/chats/{chatId}/messages?$top=30";
         }
 
-        var messages = await GetGraphPagedAsync(http, messagesUrl, bearerToken, ct);
+        // Look back 7 days — CommittedAt resets on every extraction run so is not reliable
+        var sinceOffset = DateTimeOffset.UtcNow.AddDays(-7);
+        var allMessages = await GetGraphPagedAsync(http, messagesUrl, bearerToken, ct);
+
+        // For channel messages: also fetch direct replies to the original message (thread replies)
+        if (chatType == "channel" && messageId is not null && teamId is not null && channelId is not null)
+        {
+            var repliesUrl = $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies?$top=20";
+            var replies    = await GetGraphPagedAsync(http, repliesUrl, bearerToken, ct);
+            allMessages.AddRange(replies);
+        }
+
+        // Client-side filter: only messages after the commitment was made
+        var messages = allMessages.Where(m =>
+        {
+            if (!m.TryGetProperty("createdDateTime", out var cdt)) return true;
+            return DateTimeOffset.TryParse(cdt.GetString(), out var t) && t > sinceOffset;
+        }).ToList();
 
         foreach (var msg in messages)
         {
@@ -338,7 +370,7 @@ public sealed class CommitmentResolutionService : BackgroundService
 
             var plain = StripHtml(body);
             if (!HasCompletionSignal(plain)) continue;
-            if (KeywordOverlap(entity.Title, plain) < 0.20) continue;
+            // In the same thread, a short completion signal (e.g. "Done") is sufficient — skip overlap check
 
             var sender = msg.TryGetProperty("from", out var f)
                 ? f.TryGetProperty("user", out var u)
@@ -352,10 +384,8 @@ public sealed class CommitmentResolutionService : BackgroundService
         }
 
         // Also check reactions on the original commitment message (✅, 👍 etc.)
-        var messageId = root.TryGetProperty("messageId", out var mid) ? mid.GetString() : null;
         if (messageId is not null)
         {
-            var chatId = root.TryGetProperty("chatId", out var cid2) ? cid2.GetString() : null;
             if (chatId is not null)
             {
                 var reactionsUrl = $"{GraphV1}/me/chats/{chatId}/messages/{messageId}/reactions";
@@ -584,43 +614,94 @@ public sealed class CommitmentResolutionService : BackgroundService
     private async Task<List<CompletionMessage>> ScanForCompletionMessagesAsync(
         string bearerToken, CancellationToken ct)
     {
-        var http    = _httpFactory.CreateClient("graph");
-        var since   = DateTimeOffset.UtcNow.AddDays(-2).ToString("o");
-        var results = new List<CompletionMessage>();
+        var http      = _httpFactory.CreateClient("graph");
+        var sinceDate = DateTimeOffset.UtcNow.AddDays(-2);
+        var results   = new List<CompletionMessage>();
 
-        var chatsUrl = $"{GraphV1}/me/chats?$select=id&$top=10";
-        var chats    = await GetGraphPagedAsync(http, chatsUrl, bearerToken, ct);
+        // ── DMs and group chats ───────────────────────────────────────────────
+        var chats = await GetGraphPagedAsync(http, $"{GraphV1}/me/chats", bearerToken, ct);
 
         foreach (var chat in chats)
         {
-            var chatId = chat.TryGetProperty("id", out var id) ? id.GetString() : null;
-            if (chatId is null) continue;
+            var chatId   = chat.TryGetProperty("id", out var id) ? id.GetString() : null;
+            var chatType = chat.TryGetProperty("chatType", out var ct2) ? ct2.GetString() : "";
+            if (chatId is null || chatType is not ("oneOnOne" or "group")) continue;
 
-            var msgsUrl = $"{GraphV1}/me/chats/{chatId}/messages" +
-                          $"?$filter=createdDateTime ge {Uri.EscapeDataString(since)}" +
-                          $"&$select=from,body,createdDateTime&$top=20";
-
-            var messages = await GetGraphPagedAsync(http, msgsUrl, bearerToken, ct);
+            var messages = await GetGraphPagedAsync(http,
+                $"{GraphV1}/me/chats/{chatId}/messages?$top=30", bearerToken, ct);
 
             foreach (var msg in messages)
             {
-                var body = msg.TryGetProperty("body", out var b)
-                    ? b.TryGetProperty("content", out var c) ? c.GetString() : null
-                    : null;
-                if (body is null) continue;
-
-                var plain = StripHtml(body);
-                if (!HasCompletionSignal(plain)) continue;
-
-                if (!DateTimeOffset.TryParse(
-                        msg.TryGetProperty("createdDateTime", out var cd) ? cd.GetString() : null,
-                        out var sentAt)) continue;
-
-                results.Add(new CompletionMessage(plain, sentAt));
+                if (!ExtractCompletionMessage(msg, sinceDate, out var cm)) continue;
+                results.Add(cm!);
             }
         }
 
+        // ── Joined team channels ──────────────────────────────────────────────
+        var teams = await GetGraphPagedAsync(http, $"{GraphV1}/me/joinedTeams", bearerToken, ct);
+
+        foreach (var team in teams)
+        {
+            var teamId = team.TryGetProperty("id", out var tid) ? tid.GetString() : null;
+            if (teamId is null) continue;
+
+            var channels = await GetGraphPagedAsync(http,
+                $"{GraphV1}/teams/{teamId}/channels", bearerToken, ct);
+
+            foreach (var channel in channels)
+            {
+                var channelId = channel.TryGetProperty("id", out var cid) ? cid.GetString() : null;
+                if (channelId is null) continue;
+
+                var messages = await GetGraphPagedAsync(http,
+                    $"{GraphV1}/teams/{teamId}/channels/{channelId}/messages?$top=20", bearerToken, ct);
+
+                foreach (var msg in messages)
+                {
+                    if (!ExtractCompletionMessage(msg, sinceDate, out var cm)) continue;
+                    results.Add(cm!);
+                }
+            }
+        }
+
+        // ── Sent email replies ────────────────────────────────────────────────
+        var sentUrl = $"{GraphV1}/me/mailFolders/sentitems/messages" +
+                      $"?$filter=sentDateTime ge {Uri.EscapeDataString(sinceDate.ToString("o"))}" +
+                      $"&$top=20";
+        var sentMails = await GetGraphPagedAsync(http, sentUrl, bearerToken, ct);
+
+        foreach (var mail in sentMails)
+        {
+            var preview = mail.TryGetProperty("bodyPreview", out var bp) ? bp.GetString() : null;
+            if (preview is null || !HasCompletionSignal(preview)) continue;
+            if (!DateTimeOffset.TryParse(
+                    mail.TryGetProperty("sentDateTime", out var sd) ? sd.GetString() : null,
+                    out var sentAt)) continue;
+            results.Add(new CompletionMessage(preview, sentAt));
+        }
+
         return results;
+    }
+
+    private static bool ExtractCompletionMessage(
+        JsonElement msg, DateTimeOffset since, out CompletionMessage? result)
+    {
+        result = null;
+        if (!DateTimeOffset.TryParse(
+                msg.TryGetProperty("createdDateTime", out var cd) ? cd.GetString() : null,
+                out var sentAt) || sentAt < since)
+            return false;
+
+        var body = msg.TryGetProperty("body", out var b)
+            ? b.TryGetProperty("content", out var c) ? c.GetString() : null
+            : null;
+        if (body is null) return false;
+
+        var plain = StripHtml(body);
+        if (!HasCompletionSignal(plain)) return false;
+
+        result = new CompletionMessage(plain, sentAt);
+        return true;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

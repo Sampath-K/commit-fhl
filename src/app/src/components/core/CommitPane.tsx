@@ -13,6 +13,7 @@ import {
   tokens,
   makeStyles,
 } from '@fluentui/react-components';
+import { recordFeedback } from '../../api/commitApi';
 import { useSpring, animated } from '@react-spring/web';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SPRING_CONFIGS } from '../../config/psychology.config';
@@ -211,6 +212,8 @@ function CommitCard({
   const ownerTeam = TEAM_BY_USER[commitment.owner];
   const [isDone, setIsDone] = useState(commitment.status === 'done');
   const [markingDone, setMarkingDone] = useState(false);
+  const [feedbackState, setFeedbackState] = useState<'idle' | 'confirmed' | 'dismissed'>('idle');
+  const [feedbackMsg, setFeedbackMsg] = useState('');
 
   const handleMarkDone = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -230,10 +233,31 @@ function CommitCard({
     }
   }, [commitment.owner, commitment.id]);
 
+  const handleFeedback = useCallback(async (type: 'Confirm' | 'FalsePositive', e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUserId) return;
+    try {
+      await recordFeedback(currentUserId, commitment.id, type);
+      if (type === 'Confirm') {
+        setFeedbackState('confirmed');
+        setFeedbackMsg('Marked as useful');
+        setTimeout(() => setFeedbackState('idle'), 2500);
+      } else {
+        setFeedbackMsg("Won't show similar tasks");
+        setFeedbackState('dismissed');
+      }
+    } catch {
+      // Best-effort — silently ignore feedback errors
+    }
+  }, [currentUserId, commitment.id]);
+
   const spring = useSpring({
     config: SPRING_CONFIGS.smooth,
     from: { opacity: 0, translateY: reducedMotion ? 0 : 8 },
-    to:   { opacity: isDone ? 0 : 1, translateY: isDone ? -8 : 0 },
+    to:   {
+      opacity: (isDone || feedbackState === 'dismissed') ? 0 : 1,
+      translateY: (isDone || feedbackState === 'dismissed') ? -8 : 0,
+    },
     delay: reducedMotion ? 0 : delay,
   });
 
@@ -317,9 +341,40 @@ function CommitCard({
             </div>
           }
         />
-        {/* Mark as Done button */}
-        {!isDone && (
-          <div style={{ padding: '0 12px 10px', display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Action row: Done + Feedback buttons */}
+        {!isDone && feedbackState !== 'dismissed' && (
+          <div style={{ padding: '0 12px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Thumbs feedback */}
+            <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+              {feedbackState === 'confirmed' ? (
+                <Text size={100} style={{ color: tokens.colorStatusSuccessForeground1 }}>{feedbackMsg}</Text>
+              ) : (
+                <>
+                  <Tooltip content="Useful — keep tracking" relationship="description">
+                    <Button
+                      appearance="transparent"
+                      size="small"
+                      aria-label="Mark as useful"
+                      onClick={(e) => handleFeedback('Confirm', e)}
+                      style={{ minWidth: 'unset', padding: '0 4px' }}
+                    >
+                      👍
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="Not a real task — won't show again" relationship="description">
+                    <Button
+                      appearance="transparent"
+                      size="small"
+                      aria-label="Not a real task"
+                      onClick={(e) => handleFeedback('FalsePositive', e)}
+                      style={{ minWidth: 'unset', padding: '0 4px' }}
+                    >
+                      👎
+                    </Button>
+                  </Tooltip>
+                </>
+              )}
+            </div>
             <Button
               appearance="subtle"
               size="small"

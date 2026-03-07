@@ -24,12 +24,12 @@ pending human decisions before acting. Read your role card in .specify/memory/ag
 | **Repo** | https://github.com/Sampath-K/commit-fhl (private) |
 | **Local root** | `C:\Dev\commit-fhl\` |
 | **Source root** | `C:\Dev\commit-fhl\src\` |
-| **Last completed task** | v10 deploy — DriveExtractor inline OOXML comments, PlannerExtractor plan titles, ChatExtractor channel ProjectContext, EmailExtractor ArtifactName, By Project view in CommitPane |
-| **Next task** | Human: `az login --tenant 91b9767c-...` then `npx ts-node scripts/setup-tenant.ts` · Human: T-040 4PM demo |
-| **Blockers** | None — all agent work done. Setup is automated; human just needs to run setup-tenant.ts after az login. |
-| **Human decisions needed** | T-040: 4PM live demo · Run setup-tenant.ts to create real users (see docs/real-user-setup.md) |
-| **Build status** | DEPLOYED v10 2026-03-03 · API v10 live · Frontend live with By Project view · Constitution v1.5.0 (ZHIN + H-A Contract + Template + Recon + Oracle) |
-| **Last updated** | 2026-03-03 (v10 deployed · By Project view · extractor enrichment · constitution v1.5.0) |
+| **Last completed task** | v11 — completions tracking + Progress tab with full psychology layer (DeliveryScore, StreakBadge, CompetencyLevel, weekly stat, completion timeline by day) |
+| **Next task** | Deploy v11 to Azure: build Docker image, push to ACR, deploy Container App; then SWA deploy for frontend |
+| **Blockers** | None |
+| **Human decisions needed** | Deploy v11 (see deploy steps below) |
+| **Build status** | Built locally (API + frontend both pass). Not yet deployed to Azure. |
+| **Last updated** | 2026-03-04 (v11: completions + Progress tab + psychology UX visible) |
 | **Constitution version** | v1.5.0 (P-01 through P-35) — +P-32 ZHIN, +P-33 H-A Contract, +P-34 Template, +P-35 9-agent roster |
 | **API URL** | https://commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io |
 | **Frontend URL** | https://thankful-pond-0ba16370f.6.azurestaticapps.net |

@@ -86,6 +86,33 @@ project state. Sentinel is 100% accountable for the accuracy of these files.
 5. If SESSION.md `lastCompletedTask` is stale → update it
 6. Any other gap = violation to log in Phase 4
 
+### Phase 2.6: Adversarial Protocol Integrity (P-37/P-38 compliance)
+
+For every task marked `[x]` since the last Sentinel run, check:
+
+**Design retroactivity (Gap C — P-38 CRITICAL):**
+- Does a `[DESIGN]` or `[DESIGN-APPROVED]` post exist in `agent-inbox.md` for this task?
+- Is that post timestamped *before* the first file modification for this task?
+- If implementation files exist with no design post → **P-38 CRITICAL violation**
+- If design post appears *after* file edits → **P-38 CRITICAL violation** (retroactive design)
+
+**Self-referral record completeness (Gap B — P-37/P-38):**
+- Read the diff for each completed task
+- For each observable trigger (new package added, new component created, contract changed,
+  implementation >500 lines, layering decision), check that a `[DESIGN-REVIEW]` post exists
+- Missing `[DESIGN-REVIEW]` for an observable trigger → HIGH violation (CRITICAL if layering or security)
+
+**Single-agent session review quality (Gap A — P-37):**
+- Did this session use one agent for both a production role and its challenger role?
+- If yes: check that `[ROLE: switching from X to Y]` declarations exist in `agent-inbox.md`
+- Audit at least one PASS per challenger issued in single-agent mode for documented reasoning
+- A single-agent PASS with no documented reasoning → **CRITICAL violation** (not just invalid)
+
+**Adversarial PASS documentation quality:**
+- Each PASS in `agent-inbox.md` must list: spec sections checked, principles checked, files reviewed,
+  at least one concrete item confirmed correct
+- A PASS missing any of these → MEDIUM violation; Router must require repost before `[x]` stands
+
 ### Phase 3: Constitution Spot-Check (per-principle scan)
 
 Run these checks in order. Mark each pass ✅ or fail ❌:
@@ -101,6 +128,7 @@ Run these checks in order. Mark each pass ✅ or fail ❌:
 | P-25 (Tech Debt) | Grep for `TODO` without `T-debt-` | All TODOs reference a debt entry |
 | P-29 (Live Reporting) | See Phase 2 | All documents current |
 | P-30 (Deployment) | `curl https://commit-api.gentlepond-c6124d62.eastus.azurecontainerapps.io/api/v1/health` | Returns 200 with `"status":"ok"` |
+| P-37/P-38 (Adversarial protocol) | See Phase 2.6 | No missing design gates, self-referral records, or undocumented PASSes |
 
 ### Phase 4: Violation Report + Sign-off
 
@@ -113,6 +141,7 @@ After completing all phases, append to `.specify/memory/sentinel-log.md`:
 
 ### Phase 1 — Governance Artifacts: PASS/FAIL
 ### Phase 2 — Live Reporting: PASS/FAIL (N violations)
+### Phase 2.6 — Adversarial Protocol Integrity: PASS/FAIL (N violations)
 ### Phase 3 — Constitution: PASS/FAIL (N violations)
 
 ### Violations Found: N

@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using CommitApi.Extractors.Helpers;
 using CommitApi.Models.Extraction;
 
 namespace CommitApi.Extractors;
@@ -143,17 +144,7 @@ public sealed class AdoExtractor : IAdoExtractor
         return commitments;
     }
 
-    private static readonly string[] ReviewSignals =
-    [
-        "please fix", "please update", "can you", "could you", "nitpick",
-        "blocking", "needs to be", "should be", "must be", "action:", "todo:", "fixme:"
-    ];
-
-    private static bool HasReviewSignal(string text)
-    {
-        var lower = text.ToLowerInvariant();
-        return ReviewSignals.Any(s => lower.Contains(s));
-    }
+    private static bool HasReviewSignal(string text) => AdoSignals.HasReviewSignal(text);
 
     private async Task<JsonElement?> GetAdoAsync(string url, CancellationToken ct)
     {

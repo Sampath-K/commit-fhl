@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using CommitApi.Extractors.Helpers;
 using CommitApi.Models.Extraction;
 
 namespace CommitApi.Extractors;
@@ -103,40 +104,7 @@ public sealed class EmailExtractor : IEmailExtractor
         return commitments;
     }
 
-    private static readonly string[] ActionSubjectPrefixes =
-        ["action required", "please review", "fyi:", "re:", "follow up", "reminder"];
-
-    private static readonly string[] ActionBodySignals =
-        ["please", "can you", "could you", "action item", "follow up", "by when", "deadline"];
-
-    private static bool HasActionSignal(string text)
-    {
-        var lower = text.ToLowerInvariant();
-        return ActionSubjectPrefixes.Any(p => lower.StartsWith(p))
-            || ActionBodySignals.Any(s => lower.Contains(s));
-    }
-
-    private static string NormalizeSubject(string subject)
-    {
-        // Strip common prefixes like Re:, Fwd: etc.
-        var clean = System.Text.RegularExpressions.Regex.Replace(
-            subject, @"^(Re:|Fwd?:|FW:|RE:|FWD?:)\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
-        return clean.Length > 100 ? clean[..100] + "…" : clean;
-    }
-
-    private static DateTimeOffset? InferDueDate(string text)
-    {
-        var lower = text.ToLowerInvariant();
-        var now   = DateTimeOffset.UtcNow;
-        if (lower.Contains("by eod") || lower.Contains("today"))   return now.Date.AddHours(18);
-        if (lower.Contains("tomorrow"))                             return now.AddDays(1).Date.AddHours(18);
-        if (lower.Contains("by friday") || lower.Contains("end of week"))
-        {
-            var daysUntilFriday = ((int)DayOfWeek.Friday - (int)now.DayOfWeek + 7) % 7;
-            return now.AddDays(daysUntilFriday).Date.AddHours(18);
-        }
-        if (lower.Contains("next week") || lower.Contains("by monday"))
-            return now.AddDays(7 - (int)now.DayOfWeek + 1).Date.AddHours(9);
-        return null;
-    }
+    private static bool HasActionSignal(string text)           => EmailSignals.HasActionSignal(text);
+    private static string NormalizeSubject(string subject)     => EmailSignals.NormalizeSubject(subject);
+    private static DateTimeOffset? InferDueDate(string text)   => EmailSignals.InferDueDate(text);
 }

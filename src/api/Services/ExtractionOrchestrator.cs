@@ -3,6 +3,7 @@ using CommitApi.Config;
 using CommitApi.Entities;
 using CommitApi.Extractors;
 using CommitApi.Models.Extraction;
+using CommitApi.Models.Feedback;
 using CommitApi.Repositories;
 using CommitApi.Services;
 
@@ -48,6 +49,9 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
     private readonly IAppInsightsClient      _insights;
     private readonly CommitmentEventBus      _eventBus;
     private readonly IGraphClientFactory     _graphFactory;
+    private readonly ISyncStateRepository    _syncState;
+    private readonly IFeedbackRepository     _feedbackRepo;
+    private readonly ISignalProfileService   _signalProfile;
     private readonly ILogger<ExtractionOrchestrator> _logger;
 
     public ExtractionOrchestrator(
@@ -64,28 +68,38 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         IAppInsightsClient      insights,
         CommitmentEventBus      eventBus,
         IGraphClientFactory     graphFactory,
+        ISyncStateRepository    syncState,
+        IFeedbackRepository     feedbackRepo,
+        ISignalProfileService   signalProfile,
         ILogger<ExtractionOrchestrator> logger)
     {
-        _transcripts  = transcripts;
-        _chats        = chats;
-        _emails       = emails;
-        _ado          = ado;
-        _drive        = drive;
-        _planner      = planner;
-        _nlp          = nlp;
-        _dedup        = dedup;
-        _scorer       = scorer;
-        _repo         = repo;
-        _insights     = insights;
-        _eventBus     = eventBus;
-        _graphFactory = graphFactory;
-        _logger       = logger;
+        _transcripts   = transcripts;
+        _chats         = chats;
+        _emails        = emails;
+        _ado           = ado;
+        _drive         = drive;
+        _planner       = planner;
+        _nlp           = nlp;
+        _dedup         = dedup;
+        _scorer        = scorer;
+        _repo          = repo;
+        _insights      = insights;
+        _eventBus      = eventBus;
+        _graphFactory  = graphFactory;
+        _syncState     = syncState;
+        _feedbackRepo  = feedbackRepo;
+        _signalProfile = signalProfile;
+        _logger        = logger;
     }
 
     public async Task<int> ExtractAndStoreAsync(string userId, string bearerToken, CancellationToken ct = default)
     {
         _logger.LogInformation("ExtractionOrchestrator: starting extraction for user {Hash}",
             PiiScrubber.HashValue(userId));
+
+        // Load per-user signal profile (cached 5 min) — adjusts NLP thresholds and suppresses
+        // titles the user has previously marked as false positives.
+        var profile = await _signalProfile.GetProfileAsync(userId, ct);
 
         // Exchange the incoming SSO token for a Graph-scoped OBO token.
         // The raw SSO token has aud = app client ID; Graph APIs require aud = graph.microsoft.com.
@@ -120,8 +134,8 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         var driveRaw         = t5.Result;
         var plannerRaw       = t6.Result;
 
-        // ── NLP pipeline on transcript chunks ────────────────────────────────
-        var transcriptRaw = await _nlp.ExtractFromChunksAsync(transcriptChunks, ct);
+        // ── NLP pipeline on transcript chunks (profile-aware) ─────────────────
+        var transcriptRaw = await _nlp.ExtractFromChunksAsync(transcriptChunks, profile, ct);
 
         // ── Merge all sources ─────────────────────────────────────────────────
         var allRaw = transcriptRaw
@@ -135,11 +149,22 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         // ── Deduplicate ────────────────────────────────────────────────────────
         var deduped = _dedup.Deduplicate(allRaw);
 
+        // ── Suppress items the user has previously marked as false positives ──
+        var suppressedCount = 0;
+        if (profile.SuppressedFingerprints.Count > 0)
+        {
+            var before = deduped.Count;
+            deduped = deduped
+                .Where(r => !profile.SuppressedFingerprints.Contains(ComputeTitleFingerprint(r.Title)))
+                .ToList();
+            suppressedCount = before - deduped.Count;
+        }
+
         // ── Persist with Eisenhower priority ─────────────────────────────────
         var upserted = 0;
         foreach (var raw in deduped)
         {
-            var priority = _scorer.Score(raw);
+            var priority = _scorer.Score(raw, profile);
             // Stable RowKey so repeated extractions of the same source message
             // hit UpsertAsync (Replace) rather than creating duplicate rows.
             var stableKey = Convert.ToHexString(
@@ -182,16 +207,34 @@ public sealed class ExtractionOrchestrator : IExtractionOrchestrator
         _insights.TrackUserAction("extract-background", PiiScrubber.HashValue(userId), "commitments",
             new Dictionary<string, string>
             {
-                ["raw"]     = allRaw.Count.ToString(),
-                ["deduped"] = deduped.Count.ToString(),
-                ["stored"]  = upserted.ToString(),
-                ["sources"] = "transcript,chat,email,ado,drive,planner",
+                ["raw"]        = allRaw.Count.ToString(),
+                ["deduped"]    = deduped.Count.ToString(),
+                ["stored"]     = upserted.ToString(),
+                ["suppressed"] = suppressedCount.ToString(),
+                ["sources"]    = "transcript,chat,email,ado,drive,planner",
+                ["confAdj"]    = profile.ConfidenceAdjustment.ToString("F2"),
             });
 
         _logger.LogInformation(
-            "ExtractionOrchestrator: extracted {Raw} raw → {Deduped} deduped → {Stored} stored for user {Hash}",
-            allRaw.Count, deduped.Count, upserted, PiiScrubber.HashValue(userId));
+            "ExtractionOrchestrator: {Raw} raw → {Deduped} deduped → {Suppressed} suppressed → {Stored} stored for user {Hash}",
+            allRaw.Count, deduped.Count, suppressedCount, upserted, PiiScrubber.HashValue(userId));
 
         return upserted;
+    }
+
+    /// <summary>
+    /// Computes a short stable fingerprint of a commitment title for suppression checks.
+    /// Normalises to lowercase token-sorted tokens, then SHA-256, truncated to 16 hex chars.
+    /// </summary>
+    internal static string ComputeTitleFingerprint(string title)
+    {
+        var normalized = new string(title.ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) || c == ' ' ? c : ' ')
+            .ToArray());
+        var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var joined = string.Join(" ", tokens.OrderBy(t => t));
+        return Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(joined)))[..16];
     }
 }

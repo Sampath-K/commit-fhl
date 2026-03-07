@@ -1,4 +1,5 @@
 using CommitApi.Models.Extraction;
+using CommitApi.Models.Feedback;
 
 namespace CommitApi.Services;
 
@@ -12,10 +13,10 @@ namespace CommitApi.Services;
 public sealed class EisenhowerScorer : IEisenhowerScorer
 {
     /// <inheritdoc/>
-    public string Score(RawCommitment commitment)
+    public string Score(RawCommitment commitment, UserSignalProfile? profile = null)
     {
         var urgent    = IsUrgent(commitment);
-        var important = IsImportant(commitment);
+        var important = IsImportant(commitment, profile);
 
         return (urgent, important) switch
         {
@@ -33,13 +34,15 @@ public sealed class EisenhowerScorer : IEisenhowerScorer
         return hoursUntilDue <= 48;
     }
 
-    private static bool IsImportant(RawCommitment c)
+    private static bool IsImportant(RawCommitment c, UserSignalProfile? profile)
     {
         // Exec visibility heuristic: many watchers implies high organisational importance
         if (c.WatcherUserIds.Length >= 2) return true;
 
-        // High NLP confidence on transcripts = likely explicitly stated commitment with audience
-        if (c.SourceType == CommitmentSourceType.Transcript && c.Confidence >= 0.85) return true;
+        // High NLP confidence on transcripts = likely explicitly stated commitment with audience.
+        // Profile adjustment raises the threshold when the user has a high false-positive rate.
+        var transcriptThreshold = 0.85 + (profile?.ConfidenceAdjustment ?? 0.0);
+        if (c.SourceType == CommitmentSourceType.Transcript && c.Confidence >= transcriptThreshold) return true;
 
         // Unresolved PR review = blocks the PR author from shipping
         if (c.SourceType == CommitmentSourceType.Ado) return true;

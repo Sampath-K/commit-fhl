@@ -1,0 +1,15 @@
+{
+  "name": "commit-demo-playwright",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "record": "npx ts-node --project tsconfig.json record-demo.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -75,6 +75,19 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   }
 }
 
+// ── Application Insights (linked to Log Analytics) ───────────────────────────
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name:     'commit-fhl-insights'
+  location: location
+  kind:     'web'
+  properties: {
+    Application_Type:    'web'
+    WorkspaceResourceId: logAnalytics.id
+    IngestionMode:       'LogAnalytics'
+    DisableIpMasking:    false
+  }
+}
+
 // ── Container Apps Environment ────────────────────────────────────────────────
 resource caEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
   name:     'commitEnv'
@@ -146,6 +159,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             { name: 'AZURE_STORAGE_CONN',          secretRef: 'storage-conn' }
             { name: 'AZURE_OPENAI_ENDPOINT',       value: azureOpenAiEndpoint }
             { name: 'AZURE_OPENAI_KEY',            secretRef: 'openai-key' }
+            { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
           ]
         }
       ]
@@ -179,9 +193,28 @@ resource staticWebApp 'Microsoft.Web/staticSites@2022-09-01' = {
   properties: {}
 }
 
+// ── Flow Debug Dashboard Workbook ─────────────────────────────────────────────
+var workbookContent = loadTextContent('workbook.json')
+
+resource flowWorkbook 'Microsoft.Insights/workbooks@2022-04-01' = {
+  name:     guid(resourceGroup().id, 'commit-fhl-flow-workbook')
+  location: location
+  kind:     'shared'
+  properties: {
+    displayName:    'Commit-FHL Flow Debug Dashboard'
+    serializedData: workbookContent
+    sourceId:       appInsights.id
+    category:       'workbook'
+  }
+}
+
 // ── Outputs ───────────────────────────────────────────────────────────────────
-output acrLoginServer        string = acr.properties.loginServer
-output acrName               string = acr.name
-output containerAppUrl       string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
-output staticWebAppUrl       string = 'https://${staticWebApp.properties.defaultHostname}'
-output storageAccountName    string = storageAccount.name
+output acrLoginServer                  string = acr.properties.loginServer
+output acrName                         string = acr.name
+output containerAppUrl                 string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
+output staticWebAppUrl                 string = 'https://${staticWebApp.properties.defaultHostname}'
+output storageAccountName              string = storageAccount.name
+output appInsightsConnectionString     string = appInsights.properties.ConnectionString
+output appInsightsId                   string = appInsights.id
+output appInsightsName                 string = appInsights.name
+output workbookId                      string = flowWorkbook.id

@@ -1,7 +1,7 @@
 # Commit FHL — Project Constitution
-> **Version**: 1.6.0
+> **Version**: 2.0.0
 > **Status**: Ratified
-> **Last amended**: 2026-03-03
+> **Last amended**: 2026-03-07
 > All agents must read and follow every principle. Amendments require human approval + version bump.
 
 ---
@@ -17,6 +17,10 @@
 | 1.4.0 | 2026-03-02 | Added P-31 (Sentinel integrity protocol — non-skippable end-of-session verification) |
 | 1.5.0 | 2026-03-03 | Added P-32 (Zero Human Input protocol), P-33 (Human-Agent Co-Team Contract), P-34 (Project Template Protocol); expanded agent roster to 9 (added Recon + Oracle) |
 | 1.6.0 | 2026-03-03 | Added P-36 (Teams app package version bump required on every change) |
+| 1.7.0 | 2026-03-06 | Added P-37 (Adversarial Review Protocol — 9 challenger agents); updated P-18 agent roster; updated P-26 DoD |
+| 1.8.0 | 2026-03-06 | Added P-38 (Design-First Task Protocol — design phase, architecture review, 500-line sub-task rule); updated P-26 DoD (design sign-off); updated P-37 (mandatory mid-task self-referral, rubber-stamp prevention) |
+| 1.9.0 | 2026-03-06 | Closed 4 adversarial protocol gaps: single-agent session rules (P-35, P-37), self-referral verification mandate (P-37), design retroactivity prevention (P-38), exchange-count time-box reframe (P-37) |
+| 2.0.0 | 2026-03-07 | Added P-39 (Commit-Before-Next-Task rule) |
 
 ---
 
@@ -196,10 +200,10 @@ Full localization from day 1.
 
 ### P-18 — Multi-Agent Architecture
 
-This project uses a 9-agent team (see P-35 for full roster and activation triggers).
+This project uses a 9-agent production team plus 9 adversarial challenger agents (see P-35 and P-37).
 Each agent owns a distinct slice of the codebase. One agent may play multiple roles in a session.
 
-**Agent roster:**
+**Production agent roster:**
 
 | Agent | Role | Owns | Phase |
 |-------|------|------|-------|
@@ -213,16 +217,31 @@ Each agent owns a distinct slice of the codebase. One agent may play multiple ro
 | **Recon** | Research analyst | `.specify/memory/research/` | 1–2 |
 | **Oracle** | Analytics engineer | `scripts/analytics/`, dashboards | 4 live |
 
+**Adversarial challenger roster (see P-37 for activation protocol):**
+
+| Challenger | Challenges | Activates when |
+|------------|-----------|----------------|
+| **Veto** | Router | Router announces task complete |
+| **Crucible** | Forge | Forge announces task complete |
+| **Friction** | Canvas | Canvas announces task complete |
+| **Breach** | Shield | Shield announces task complete |
+| **Blind** | Lens | Lens announces task complete |
+| **Wilt** | Seed | Seed announces task complete |
+| **Mirage** | Recon | Recon publishes a research finding |
+| **Noise** | Oracle | Oracle publishes analytics output |
+| **Shadow** | Sentinel | Sentinel issues a sign-off |
+
 **Inter-agent communication**: `.specify/memory/agent-inbox.md`
 - Post a message when you need another agent's output before proceeding
 - Tag it `[BLOCKING]` if it blocks your current task
 - Check inbox at start of every session
 
-**Definition of Done** (Router checks all 4 before marking `[x]`):
+**Definition of Done** (Router checks all 5 before marking `[x]`):
 1. All automated tests pass (unit + relevant functional)
 2. Router reviewed output against constitution (all principles checked)
 3. Acceptance criteria in tasks.md explicitly met
 4. No unresolved agent-inbox.md messages for this task
+5. **Adversarial challenger has posted PASS** to agent-inbox.md for this task (P-37)
 
 ### P-19 — Git Workflow
 
@@ -357,12 +376,14 @@ Technical debt is tracked, not hidden.
 
 ### P-26 — Definition of Done
 
-A task is **done** when ALL four criteria are met. Meeting three of four is NOT done.
+A task is **done** when ALL six criteria are met. Meeting five of six is NOT done.
 
-1. ✅ All automated tests pass (unit tests + relevant functional tests)
-2. ✅ Router reviewed output against this constitution (all applicable principles checked)
-3. ✅ All acceptance criteria stated in tasks.md are explicitly met
-4. ✅ No open messages in agent-inbox.md addressed to this agent for this task
+1. ✅ **Design sign-off**: task had a design phase; architecture was challenger-reviewed before implementation (P-38)
+2. ✅ All automated tests pass (unit tests + relevant functional tests)
+3. ✅ Router reviewed output against this constitution (all applicable principles checked)
+4. ✅ All acceptance criteria stated in tasks.md are explicitly met
+5. ✅ No open messages in agent-inbox.md addressed to this agent for this task
+6. ✅ Adversarial challenger has posted **PASS** to agent-inbox.md (P-37 — cannot be skipped)
 
 ### P-27 — Psychology & Motivation Layer
 
@@ -757,8 +778,28 @@ The baseline agent roster has expanded from 7 to 9 to cover the full project lif
 - **Oracle**: Activate when the system is live in pilot and usage data is available
 - All other agents: same triggers as before (see P-18)
 
-**Single-agent sessions**: One agent playing all roles is valid. Use role cards as checklists,
-not as hard parallelism requirements. The governance model works whether there is 1 agent or 9.
+**Single-agent sessions (Gap A — adversarial integrity in solo mode):**
+
+One agent playing all roles is valid for implementation. It is NOT valid for adversarial review
+without explicit role isolation. When one agent instance plays both a production agent and its
+challenger, the following rules are mandatory — without them the adversarial pairing collapses:
+
+1. **Explicit role declaration**: The agent must declare a role switch in `agent-inbox.md`
+   before performing a review. Example: `[ROLE: switching from Forge to Crucible for T-NNN review]`
+2. **Reasoning separation**: The challenger reasoning must be written as a distinct block,
+   explicitly from the challenger's perspective — not blended into the build narrative
+3. **No forward knowledge**: The challenger block must be written as if encountering the
+   implementation for the first time. References to implementation decisions made "earlier in
+   the same session" as justification for a PASS are invalid — the challenger cannot excuse
+   what the builder chose
+4. **Sentinel audits all single-agent challenger reviews**: In every session where one agent
+   played both roles, Sentinel must review at least one PASS per challenger for evidence quality.
+   A single-agent PASS with no documented reasoning is a CRITICAL violation — not just invalid.
+5. **Shadow audits single-agent Sentinel sign-offs with elevated scrutiny**: If Sentinel itself
+   was a single-agent review, Shadow treats any "zero violations" outcome as requiring additional
+   evidence before accepting it
+
+The governance model works in single-agent sessions only when these rules are followed.
 
 ---
 
@@ -792,6 +833,255 @@ MINOR increments for new capabilities (new tabs, connectors, scopes).
 **Sentinel check**: Sentinel must verify that the version in `manifest.json` is strictly greater
 than the version in the previous commit whenever `appPackage/` files are modified.
 A version that was not bumped is a **CRITICAL** violation (blocks demo upload).
+
+---
+
+### P-37 — Adversarial Review Protocol
+
+Every production agent has a designated adversarial challenger. No task is done until
+the challenger signs off. This principle is non-negotiable and cannot be waived by Router.
+
+**Why**: The production team is optimised for building. No agent is constitutionally
+incentivised to say "this is wrong." The adversarial layer fixes this systematic blind spot.
+
+**The 9 challenger pairs:**
+
+| Challenger | Challenges | Core attack surface |
+|------------|-----------|---------------------|
+| **Veto** | Router | Coordination decisions, task assignments, sequencing |
+| **Crucible** | Forge | Backend correctness, error paths, spec compliance |
+| **Friction** | Canvas | UX assumptions, psychology effectiveness, accessibility |
+| **Breach** | Shield | Security gaps, over-permissioning, infra assumptions |
+| **Blind** | Lens | Test quality vs. quantity, false coverage, missing edge cases |
+| **Wilt** | Seed | Demo realism, scenario believability, timing gaps |
+| **Mirage** | Recon | Research bias, stale sources, unexamined counterarguments |
+| **Noise** | Oracle | Vanity metrics, measurement gaps, KPI validity |
+| **Shadow** | Sentinel | Verification completeness, rubber-stamping, protocol gaps |
+
+**Activation**: A challenger activates when its corresponding agent announces task completion —
+and before Router marks `[x]`. Challengers have a 10-minute time-box.
+
+**The two verdicts:**
+
+- **PASS** → Router may mark `[x]`. Challenger documents what was checked.
+- **CHALLENGE** → Task is BLOCKED pending the originating agent's response.
+  - CRITICAL/HIGH challenges: agent must fix or provide an accepted rebuttal before `[x]`
+  - MEDIUM/LOW challenges: agent must acknowledge; logged as tech debt if not fixed
+
+**Rebuttal protocol**: A valid rebuttal must cite evidence (spec, constitution, data),
+acknowledge the concern, explain the tradeoff, and propose a resolution. Opinion is not a rebuttal.
+
+**Escalation**: If agent and challenger cannot resolve in 1 exchange each → Sentinel arbitrates.
+If Sentinel cannot resolve → human is the tiebreaker. Hard cap: 1 arbitration round.
+
+**Challenge severity definitions:**
+
+| Severity | Definition | Blocks `[x]`? |
+|----------|-----------|--------------|
+| CRITICAL | Spec requirement not met; constitution violation; security vulnerability | Yes — must fix |
+| HIGH | Significant quality gap; missing error path; assumption invalidated by evidence | Yes — fix or accepted rebuttal |
+| MEDIUM | Improvement opportunity; better approach exists; documentation gap | No — acknowledge + log |
+| LOW | Minor concern; style preference; hypothetical edge case | No — logged for awareness |
+
+**What challengers do NOT do:**
+- Rebuild or rewrite the agent's work
+- Challenge FHL scope decisions already ratified in decisions.md
+- Raise concerns outside the scope of what the task changed
+- Obstruct without evidence — every challenge must be supported by spec, constitution, or concrete test
+
+**Mandatory mid-task self-referral (non-negotiable):**
+
+An agent MUST self-refer to their challenger mid-task — before continuing implementation —
+when any of the following occur during a task:
+
+| Trigger | Who self-refers |
+|---------|----------------|
+| An architectural pattern is chosen that was not in the approved plan | Forge or Canvas → Crucible or Friction |
+| A new dependency (npm/NuGet) is added that was not in the original task | Any agent → their challenger |
+| A layering boundary is crossed (e.g., business logic needed in a repo layer) | Forge → Crucible |
+| A data model or API contract changes from what was specified | Forge → Crucible; Canvas notified via inbox |
+| A security permission or scope is added mid-task | Shield → Breach |
+| A new component or service is created that wasn't in the design phase | Any agent → their challenger |
+
+Self-referral is posted to `agent-inbox.md` tagged `[DESIGN-REVIEW]`. The challenger reviews
+the specific decision (not the whole task) — one exchange per party — and posts APPROVED or
+CHALLENGE. If the challenger posts CHALLENGE, the agent must resolve it before proceeding.
+
+Skipping a mandatory self-referral is a P-38 CRITICAL violation (layering or security decision)
+or HIGH violation (all other triggers). Sentinel checks for this during every session audit.
+
+**Self-referral verification at completion review (closing the honor-system):**
+
+Crucible, Friction, and Breach MUST explicitly ask the following at every completion review,
+before issuing any PASS verdict:
+
+> *"Were any of the 7 self-referral triggers hit during this task? If yes, show me the
+> corresponding `[DESIGN-REVIEW]` post in `agent-inbox.md`."*
+
+If the agent cannot produce a `[DESIGN-REVIEW]` post for a trigger that the challenger can
+independently observe in the diff (e.g., a new package was added, a layer boundary was
+crossed, implementation is clearly >500 lines), the challenger MUST raise a HIGH challenge.
+The absence of a required `[DESIGN-REVIEW]` record is itself a violation — regardless of
+whether the underlying decision was technically correct.
+
+This converts self-referral from honor-based to **evidence-based**: the record must exist
+or the completion review fails.
+
+**Rubber-stamp prevention (Gap 1):**
+
+A PASS verdict is only valid if it includes documented evidence of what was checked. Specifically:
+- The PASS must list which spec sections were verified
+- The PASS must list which constitution principles were checked
+- The PASS must state at least one thing that *was* checked and found correct
+- A PASS with no documentation is invalid — Router must reject it and require the challenger to repost
+
+If Router observes a pattern of undocumented PASSes from a challenger, Router escalates to Sentinel.
+Sentinel may retroactively invalidate PASSes that lack evidence and reopen those tasks.
+
+**Exchange-limit rules (the enforceable constraint):**
+
+The primary constraint is **one substantive exchange per party** — not a clock. "10 minutes" is the
+spirit; "one exchange per party" is the enforceable letter.
+
+- Each party gets **one exchange**: challenger posts CHALLENGE; agent posts one rebuttal; challenger
+  posts final verdict (accept or ESCALATE). That is the complete protocol — no further rounds.
+- A "substantive exchange" means a response that cites evidence. A one-line acknowledgement without
+  substance does not count as an exchange and must be followed up.
+- CRITICAL challenges are not cut off by the exchange limit — they continue through the rebuttal
+  round. The limit prevents *debates*; it does not truncate *genuine resolution work* on critical issues.
+- If resolution cannot be reached within 1 exchange each → Sentinel arbitrates (hard cap: 1 round)
+- If Sentinel cannot resolve → human is the tiebreaker
+- The "10 minutes" framing applies as a *guideline* for human-supervised sessions where wall-clock
+  time is meaningful. In AI-agent sessions the exchange limit is the operative rule.
+
+**Role cards**: `.specify/memory/agent-roles/` — each challenger has a full role card with
+domain-specific checklists, red-team scenarios, and a boot sequence.
+
+**Reference**: `.specify/memory/adversarial-protocol.md` — master protocol document.
+
+---
+
+### P-38 — Design-First Task Protocol
+
+Every task that creates or modifies a component, service, repository, or infrastructure
+resource MUST begin with a design phase before any implementation code is written.
+Design is not optional. Implementation without design is a constitution violation.
+
+---
+
+#### 38.1 — Mandatory Design Phase
+
+Before writing any implementation code for a task, the responsible agent must produce a
+**design note** in `agent-inbox.md` (tagged `[DESIGN]`) or as a comment in tasks.md.
+The design note must include all of the following:
+
+| Section | What it captures |
+|---------|-----------------|
+| **Contract** | The public interface — function signatures, API route shape, component props, or infrastructure resource attributes |
+| **Data flow** | Where data comes from, how it's transformed, where it goes |
+| **Error paths** | What fails and how — every failure mode named, not just the happy path |
+| **State ownership** | Where state lives (TanStack Query vs. Context vs. local; service vs. repository) |
+| **Test strategy** | What unit tests, what integration tests, what edge cases will be written |
+| **Size estimate** | Estimated lines of implementation code (triggers the 500-line rule if > 500) |
+
+---
+
+#### 38.2 — Architecture Review Before Implementation
+
+The adversarial challenger for the responsible agent **must review and approve the design note**
+before implementation begins. This is a mandatory pre-implementation gate, not a post-review.
+
+**Retroactivity prevention (Gap C):**
+
+The design note MUST be posted to `agent-inbox.md` **before any implementation file is created
+or modified**. Writing the design after the code and backdating it is a constitution violation.
+
+Sentinel enforces this by verifying ordering: the `[DESIGN-APPROVED]` post in `agent-inbox.md`
+must have an earlier timestamp than the first file modification for that task. If implementation
+files exist with no corresponding design post, or if the design post appears *after* file edits,
+Sentinel flags a **P-38 CRITICAL violation** — the same severity as skipping the design phase
+entirely. The task is retroactively blocked and must be re-reviewed from the design gate.
+
+**Review process:**
+1. Agent posts `[DESIGN]` note to `agent-inbox.md`
+2. Challenger reviews within the 10-minute time-box
+3. Challenger posts `[DESIGN-APPROVED]` or `[DESIGN-CHALLENGE]`
+4. If CHALLENGE: agent revises the design. Implementation cannot begin until approved.
+5. `[DESIGN-APPROVED]` is the first gate that unlocks implementation
+
+**What the challenger reviews in design phase:**
+- Does the contract violate any P-20 layering rule?
+- Does the data flow introduce any P-12 privacy risk?
+- Are the error paths realistic (does the agent know what fails)?
+- Is the state ownership correct per P-22?
+- Is the test strategy sufficient per P-06?
+- Does the size estimate trigger the 500-line sub-task rule (38.3)?
+
+Design review uses the same CRITICAL/HIGH/MEDIUM/LOW severity system as task review (P-37).
+A CRITICAL design challenge blocks implementation until resolved.
+
+---
+
+#### 38.3 — 500-Line Sub-Task Rule
+
+Any task where the design phase size estimate exceeds **500 lines of implementation code**
+MUST be broken into sub-tasks before any implementation begins.
+
+**Why**: Tasks over 500 lines are hard to review accurately in a 10-minute time-box,
+increase the risk of spec drift, and make challenger reviews shallow. Sub-tasks keep
+each unit small enough for genuine adversarial review.
+
+**Sub-task requirements:**
+- Each sub-task must independently pass the design phase (38.1 + 38.2)
+- Each sub-task must be independently deployable or at minimum independently testable
+- Sub-tasks are added to `tasks.md` with the parent task ID in the name: `T-NNNa`, `T-NNNb`, etc.
+- The parent task is not marked `[x]` until all sub-tasks are `[x]`
+- The 500-line rule is re-evaluated at each sub-task's design phase — sub-tasks that are
+  themselves over 500 lines must be split again
+
+**What counts toward 500 lines:**
+- All implementation code (`.ts`, `.tsx`, `.cs`, Bicep, YAML)
+- Does NOT count: test files, documentation, generated files (migrations, OpenAPI spec)
+
+**Enforcement:**
+- The responsible agent estimates lines at design phase — this is self-reported
+- The challenger validates the estimate is realistic (if suspiciously low, CHALLENGE it)
+- Sentinel spot-checks: if a merged task contains >600 lines of implementation code
+  with no sub-tasks, Sentinel flags a P-38 violation as MEDIUM severity
+
+---
+
+#### 38.4 — Lightweight Design for Small Tasks
+
+Tasks projected at < 100 lines of implementation do not require the full design note format.
+They require a **minimum design statement** — one sentence each for contract, error paths,
+and test strategy — posted to `agent-inbox.md` before implementation.
+
+Challenger review for small tasks is still required but uses a lighter format:
+`[DESIGN-APPROVED: small task — contract clear, error paths named, test strategy stated]`
+
+The 500-line rule is absolute even for tasks that seemed small at start — if implementation
+exceeds 500 lines mid-task, the agent must stop, split into sub-tasks, and get design approval
+on each sub-task before continuing.
+
+---
+
+---
+
+### P-39 — Commit Before Next Task
+
+**Every completed task MUST be committed and pushed to the repository before the next task begins.**
+
+No task may be marked `completed` in `tasks.md` without a corresponding `git commit` that captures all implementation work for that task. The commit message must reference the task ID (e.g., `[T-D01] Add VttParser helper class`).
+
+**What this means in practice:**
+- Implement task → run tests → `git add` all relevant files → `git commit` → `git push` → mark task completed → start next task
+- Partial commits are permitted (e.g., for large tasks split into sub-tasks), but each sub-task must have its own commit before the sub-task is marked complete
+- If a task spans multiple sessions, commit and push at end of each session even if the task is not yet complete — use `[WIP]` prefix in the commit message
+
+**Enforcement:**
+- Sentinel checks at end of every session: if any task was marked completed without a matching commit hash, it is a P-39 violation (CRITICAL severity)
+- The agent responsible for the task bears the violation — not Sentinel
 
 ---
 

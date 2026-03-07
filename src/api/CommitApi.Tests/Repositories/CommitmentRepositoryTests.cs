@@ -145,6 +145,62 @@ public class CommitmentRepositoryTests
         await act.Should().NotThrowAsync();
     }
 
+    // ─── ListByOwnerAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListByOwnerAsync_MultiplePages_ReturnsAll()
+    {
+        // Arrange — simulate two pages of results
+        var entities = Enumerable.Range(1, 5).Select(i => BuildEntity("user-1", $"row-{i}")).ToList();
+        SetupQueryToReturn(entities);
+
+        // Act
+        var results = await _repository.ListByOwnerAsync("user-1");
+
+        // Assert
+        Assert.Equal(5, results.Count);
+    }
+
+    [Fact]
+    public async Task DeleteAllForUserAsync_BatchesOf100_SendsCorrectTransactions()
+    {
+        // Arrange — 3 entities (fits in one batch)
+        var entities = Enumerable.Range(1, 3).Select(i => BuildEntity("user-del", $"row-{i}")).ToList();
+        SetupQueryToReturn(entities);
+
+        _mockClient
+            .Setup(x => x.SubmitTransactionAsync(
+                It.IsAny<IEnumerable<TableTransactionAction>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<Response<IReadOnlyList<Response>>>());
+
+        // Act
+        await _repository.DeleteAllForUserAsync("user-del");
+
+        // Assert — exactly one batch submitted
+        _mockClient.Verify(
+            x => x.SubmitTransactionAsync(
+                It.IsAny<IEnumerable<TableTransactionAction>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ServerError_ThrowsStorageException()
+    {
+        // Arrange
+        _mockClient
+            .Setup(x => x.DeleteEntityAsync("user-1", "row-err", default, default))
+            .ThrowsAsync(new RequestFailedException(500, "Internal Server Error"));
+
+        // Act
+        var act = () => _repository.DeleteAsync("user-1", "row-err");
+
+        // Assert
+        await act.Should().ThrowAsync<StorageException>()
+            .WithMessage("*row-err*");
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private static CommitmentEntity BuildEntity(string userId, string rowKey,
