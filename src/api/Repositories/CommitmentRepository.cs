@@ -156,6 +156,18 @@ public sealed class CommitmentRepository : ICommitmentRepository
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<int> CountAllAsync(int limit = 5000, CancellationToken ct = default)
+    {
+        int count = 0;
+        await foreach (var _ in _tableClient.QueryAsync<CommitmentEntity>(
+            select: ["RowKey"], cancellationToken: ct))
+        {
+            if (++count >= limit) break;
+        }
+        return count;
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
     private static IReadOnlyList<string> DeserializeIds(string json)

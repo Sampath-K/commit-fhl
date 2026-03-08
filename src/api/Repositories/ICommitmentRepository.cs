@@ -61,4 +61,12 @@ public interface ICommitmentRepository
     /// <param name="userId">PartitionKey — owner AAD Object ID.</param>
     /// <param name="ct">Cancellation token.</param>
     Task DeleteAllForUserAsync(string userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns approximate total commitment count across all users (admin use only).
+    /// Uses a cross-partition projection scan — only fetches RowKey to minimize data transfer.
+    /// </summary>
+    /// <param name="limit">Maximum rows to scan before returning.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<int> CountAllAsync(int limit = 5000, CancellationToken ct = default);
 }

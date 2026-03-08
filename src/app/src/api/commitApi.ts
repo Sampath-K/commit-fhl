@@ -21,7 +21,8 @@ export async function recordFeedback(
   userId: string,
   commitmentId: string,
   type: FeedbackType,
-  authToken?: string
+  authToken?: string,
+  comment?: string
 ): Promise<void> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
@@ -30,7 +31,7 @@ export async function recordFeedback(
     {
       method: 'POST',
       headers,
-      body: JSON.stringify({ commitmentId, type }),
+      body: JSON.stringify({ commitmentId, type, comment: comment ?? null }),
     }
   );
 }
@@ -132,4 +133,76 @@ export async function getAdminInsights(authToken?: string): Promise<{ insights: 
   if (!res.ok) throw new Error(`Admin insights failed: ${res.status}`);
   const body = (await res.json()) as ApiResponse<{ insights: string }>;
   return body.data ?? { insights: '' };
+}
+
+// ─── Admin — Feedback list ──────────────────────────────────────────────────
+
+export interface FeedbackItem {
+  type: string;
+  sourceType: string;
+  recordedAt: string;
+  idRef: string;
+  confidence: number;
+  comment?: string;
+}
+
+export interface FeedbackBreakdown {
+  byType:   Record<string, number>;
+  bySource: Record<string, number>;
+}
+
+export interface FeedbackListResult {
+  items:     FeedbackItem[];
+  total:     number;
+  breakdown: FeedbackBreakdown;
+}
+
+export async function getAdminFeedback(
+  type?: string,
+  source?: string,
+  limit = 200,
+  authToken?: string
+): Promise<FeedbackListResult> {
+  const headers: Record<string, string> = {};
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (type)   params.set('type',   type);
+  if (source) params.set('source', source);
+  const res = await fetch(`${API_BASE}/api/v1/admin/feedback?${params}`, { headers });
+  if (!res.ok) throw new Error(`Admin feedback failed: ${res.status}`);
+  const body = (await res.json()) as ApiResponse<FeedbackListResult>;
+  return body.data ?? { items: [], total: 0, breakdown: { byType: {}, bySource: {} } };
+}
+
+// ─── Admin — Signal profiles ────────────────────────────────────────────────
+
+export interface SignalUserProfile {
+  userRef:              string;
+  totalFeedback:        number;
+  fpRate:               number;
+  suppressedCount:      number;
+  confidenceAdjustment: number;
+  lastFeedbackAt:       string;
+}
+
+export interface SignalProfilesResult {
+  users: SignalUserProfile[];
+  aggregate: {
+    userCount:              number;
+    avgFpRate:              number;
+    avgConfidenceAdjustment: number;
+    totalSuppressed:        number;
+  };
+}
+
+export async function getAdminSignalProfiles(authToken?: string): Promise<SignalProfilesResult> {
+  const headers: Record<string, string> = {};
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(`${API_BASE}/api/v1/admin/signal-profiles`, { headers });
+  if (!res.ok) throw new Error(`Signal profiles failed: ${res.status}`);
+  const body = (await res.json()) as ApiResponse<SignalProfilesResult>;
+  return body.data ?? {
+    users: [],
+    aggregate: { userCount: 0, avgFpRate: 0, avgConfidenceAdjustment: 0, totalSuppressed: 0 },
+  };
 }

@@ -870,6 +870,7 @@ api.MapPost("/commitments/{id}/feedback", async (
         SourceType            = entity.SourceType ?? "",
         RecordedAt            = DateTimeOffset.UtcNow,
         ConfidenceAtFeedback  = 0.0, // stored on FeedbackEntity; entity has ImpactScore not confidence
+        Comment               = req.Comment?.Trim().Length > 0 ? req.Comment.Trim() : null,
     };
 
     await feedbackRepo.RecordAsync(feedbackEntity);
@@ -1080,25 +1081,125 @@ api.MapGet("/admin/metrics", async (
     IFeedbackRepository   feedbackRepo,
     IAppInsightsClient    insights) =>
 {
-    // Aggregate feedback from all users for admin view
-    // Feedback rows are keyed by userId hash — we query a sentinel "admin" hash to get all
-    // In practice: scan a sample of feedback rows by listing up to 1000 most recent entries
-    // For this implementation we derive metrics from the commitments table (accessible w/o userId)
-    // A full production impl would use Azure Monitor / KQL instead.
+    var statsTask      = feedbackRepo.GetAdminStatsAsync();
+    var countTask      = repo.CountAllAsync();
+    await Task.WhenAll(statsTask, countTask);
 
-    var userMetrics = new Dictionary<string, object>();
+    var (totalFeedback, falsePositives, avgConfidence) = statsTask.Result;
+    var totalCommitments = countTask.Result;
+    var falsePositiveRate = totalFeedback > 0 ? (double)falsePositives / totalFeedback : 0.0;
 
     insights.TrackUserAction("admin-metrics-viewed", "admin", "admin", new Dictionary<string, string>());
 
     return Results.Ok(new
     {
-        success        = true,
-        note           = "Admin metrics aggregation requires Azure Monitor / KQL in production. This endpoint returns metadata only.",
-        generatedAt    = DateTimeOffset.UtcNow,
-        requestId      = Guid.NewGuid(),
+        success = true,
+        data = new
+        {
+            totalCommitments,
+            totalFeedback,
+            avgConfidence,
+            falsePositiveRate,
+        },
+        generatedAt = DateTimeOffset.UtcNow,
+        requestId   = Guid.NewGuid(),
     });
 })
 .WithName("GetAdminMetrics")
+.WithOpenApi();
+
+// GET /api/v1/admin/feedback — paginated list of feedback events for admin review
+api.MapGet("/admin/feedback", async (
+    HttpContext         http,
+    IFeedbackRepository feedbackRepo) =>
+{
+    var typeFilter   = http.Request.Query["type"].FirstOrDefault();
+    var sourceFilter = http.Request.Query["source"].FirstOrDefault();
+    var limitStr     = http.Request.Query["limit"].FirstOrDefault();
+    var limit        = int.TryParse(limitStr, out var l) ? Math.Clamp(l, 1, 500) : 200;
+
+    var rows = await feedbackRepo.GetRecentAsync(typeFilter, sourceFilter, limit);
+
+    var byType   = rows.GroupBy(r => r.FeedbackType)
+                       .ToDictionary(g => g.Key, g => g.Count());
+    var bySource = rows.GroupBy(r => r.SourceType)
+                       .ToDictionary(g => g.Key, g => g.Count());
+
+    return Results.Ok(new
+    {
+        success = true,
+        data = new
+        {
+            items = rows.Select(r => new
+            {
+                type       = r.FeedbackType,
+                sourceType = r.SourceType,
+                recordedAt = r.RecordedAt,
+                idRef      = r.CommitmentIdHash[..Math.Min(8, r.CommitmentIdHash.Length)],
+                confidence = r.ConfidenceAtFeedback,
+                comment    = r.Comment,
+            }),
+            total     = rows.Count,
+            breakdown = new { byType, bySource },
+        },
+        requestId = Guid.NewGuid(),
+    });
+})
+.WithName("GetAdminFeedback")
+.WithOpenApi();
+
+// GET /api/v1/admin/signal-profiles — per-user pipeline tuning state derived from feedback
+api.MapGet("/admin/signal-profiles", async (IFeedbackRepository feedbackRepo) =>
+{
+    // Cross-partition scan: group by userHash to compute per-user stats
+    var all = await feedbackRepo.GetRecentAsync(limit: 2000);
+
+    var users = all
+        .GroupBy(r => r.PartitionKey)
+        .Select(g =>
+        {
+            var total       = g.Count();
+            var fpCount     = g.Count(r => r.FeedbackType == "FalsePositive");
+            var fpRate      = total > 0 ? (double)fpCount / total : 0.0;
+            var confAdj     = fpRate > 0.60 ? 0.15 : fpRate > 0.30 ? 0.05 : 0.0;
+            var suppressed  = g.Where(r => r.FeedbackType == "FalsePositive")
+                               .Select(r => r.TitleFingerprint)
+                               .Distinct().Count();
+            return new
+            {
+                userRef              = g.Key[..Math.Min(8, g.Key.Length)],
+                totalFeedback        = total,
+                fpRate,
+                suppressedCount      = suppressed,
+                confidenceAdjustment = confAdj,
+                lastFeedbackAt       = g.Max(r => r.RecordedAt),
+            };
+        })
+        .OrderByDescending(u => u.totalFeedback)
+        .ToList();
+
+    var avgFpRate  = users.Count > 0 ? users.Average(u => u.fpRate) : 0.0;
+    var avgConfAdj = users.Count > 0 ? users.Average(u => u.confidenceAdjustment) : 0.0;
+    var totalSup   = users.Sum(u => u.suppressedCount);
+
+    return Results.Ok(new
+    {
+        success = true,
+        data = new
+        {
+            users,
+            aggregate = new
+            {
+                userCount              = users.Count,
+                avgFpRate,
+                avgConfidenceAdjustment = avgConfAdj,
+                totalSuppressed         = totalSup,
+            },
+        },
+        requestId = Guid.NewGuid(),
+    });
+})
+.WithName("GetAdminSignalProfiles")
 .WithOpenApi();
 
 // GET /api/v1/admin/insights — AI-generated analysis of extraction performance

@@ -8,6 +8,8 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     // Map import.meta.env to a stub
     '^virtual:.*$': '<rootDir>/src/__tests__/__mocks__/virtual.ts',
+    // Stub api.config — uses import.meta.env which ts-jest cannot parse
+    '.*[/\\\\]config[/\\\\]api\\.config$': '<rootDir>/src/__tests__/__mocks__/api.config.ts',
   },
   transform: {
     '^.+\\.[tj]sx?$': [

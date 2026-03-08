@@ -12,6 +12,12 @@ import {
   Tooltip,
   tokens,
   makeStyles,
+  Dialog,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogActions,
+  Textarea,
 } from '@fluentui/react-components';
 import { recordFeedback } from '../../api/commitApi';
 import { useSpring, animated } from '@react-spring/web';
@@ -214,6 +220,8 @@ function CommitCard({
   const [markingDone, setMarkingDone] = useState(false);
   const [feedbackState, setFeedbackState] = useState<'idle' | 'confirmed' | 'dismissed'>('idle');
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const [thumbsDownComment, setThumbsDownComment] = useState('');
 
   const handleMarkDone = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -236,20 +244,32 @@ function CommitCard({
   const handleFeedback = useCallback(async (type: 'Confirm' | 'FalsePositive', e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUserId) return;
+    if (type === 'FalsePositive') {
+      setShowCommentDialog(true);
+      return;
+    }
     try {
       await recordFeedback(currentUserId, commitment.id, type);
-      if (type === 'Confirm') {
-        setFeedbackState('confirmed');
-        setFeedbackMsg('Marked as useful');
-        setTimeout(() => setFeedbackState('idle'), 2500);
-      } else {
-        setFeedbackMsg("Won't show similar tasks");
-        setFeedbackState('dismissed');
-      }
+      setFeedbackState('confirmed');
+      setFeedbackMsg('Marked as useful');
+      setTimeout(() => setFeedbackState('idle'), 2500);
     } catch {
       // Best-effort — silently ignore feedback errors
     }
   }, [currentUserId, commitment.id]);
+
+  const handleThumbsDownSubmit = useCallback(async () => {
+    setShowCommentDialog(false);
+    if (!currentUserId) return;
+    try {
+      await recordFeedback(currentUserId, commitment.id, 'FalsePositive', undefined, thumbsDownComment.trim() || undefined);
+      setFeedbackMsg("Won't show similar tasks");
+      setFeedbackState('dismissed');
+    } catch {
+      // Best-effort — silently ignore feedback errors
+    }
+    setThumbsDownComment('');
+  }, [currentUserId, commitment.id, thumbsDownComment]);
 
   const spring = useSpring({
     config: SPRING_CONFIGS.smooth,
@@ -408,6 +428,26 @@ function CommitCard({
           </div>
         )}
       </Card>
+
+      {/* Thumbs-down comment dialog */}
+      <Dialog open={showCommentDialog} onOpenChange={(_, d) => { if (!d.open) { setShowCommentDialog(false); setThumbsDownComment(''); } }}>
+        <DialogSurface onClick={(e) => e.stopPropagation()}>
+          <DialogTitle>Why isn't this a real task?</DialogTitle>
+          <DialogBody>
+            <Textarea
+              placeholder="Optional — helps improve extraction (max 200 chars)"
+              value={thumbsDownComment}
+              onChange={(_, d) => setThumbsDownComment(d.value.slice(0, 200))}
+              resize="vertical"
+              style={{ width: '100%', marginTop: '8px' }}
+            />
+          </DialogBody>
+          <DialogActions>
+            <Button appearance="subtle" onClick={() => { setShowCommentDialog(false); setThumbsDownComment(''); }}>Cancel</Button>
+            <Button appearance="primary" onClick={() => void handleThumbsDownSubmit()}>Submit</Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
     </animated.div>
   );
 }

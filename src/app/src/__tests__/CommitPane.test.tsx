@@ -11,9 +11,16 @@
  * the design gap (self-owned cards have no pill).
  */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CommitPane } from '../components/core/CommitPane';
 import { makeCommitment, ALEX_OID, MARCUS_OID, SARAH_OID } from './helpers';
+
+// ─── commitApi mock ────────────────────────────────────────────────────────────
+
+const mockRecordFeedback = jest.fn();
+jest.mock('../api/commitApi', () => ({
+  recordFeedback: (...args: unknown[]) => mockRecordFeedback(...args),
+}));
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
@@ -68,6 +75,10 @@ jest.mock('../config/psychology.config', () => ({
   SPRING_CONFIGS: { smooth: {}, gentle: {}, bounce: {} },
   STAGGER_DELAYS:  { cascadeItems: 0 },
 }));
+jest.mock('../hooks/useDeliveryScore', () => ({ useDeliveryScore: () => ({ data: null }) }));
+jest.mock('../components/psychology/DeliveryScore', () => ({ DeliveryScore: () => null }));
+jest.mock('../components/psychology/StreakBadge', () => ({ StreakBadge: () => null }));
+jest.mock('../components/psychology/CompetencyLevel', () => ({ CompetencyLevel: () => null }));
 
 // ─── Loading state ────────────────────────────────────────────────────────────
 
@@ -233,5 +244,68 @@ describe('CommitPane — Eisenhower quadrant grouping', () => {
     const c = makeCommitment({ priority: 'urgent-important' });
     render(<CommitPane commitments={[c]} isLoading={false} />);
     expect(screen.queryByText('commitPane.quadrants.notUrgentNotImportant')).not.toBeInTheDocument();
+  });
+});
+
+// ─── Feedback buttons ─────────────────────────────────────────────────────────
+
+describe('CommitPane — feedback buttons', () => {
+  beforeEach(() => {
+    mockRecordFeedback.mockReset();
+    mockRecordFeedback.mockResolvedValue(undefined);
+  });
+
+  it('renders thumbs-up and thumbs-down buttons on active cards', () => {
+    const c = makeCommitment({ id: 'fb-001', status: 'in-progress' });
+    render(<CommitPane commitments={[c]} isLoading={false} currentUserId={ALEX_OID} />);
+    expect(screen.getByLabelText('Mark as useful')).toBeInTheDocument();
+    expect(screen.getByLabelText('Not a real task')).toBeInTheDocument();
+  });
+
+  it('calls recordFeedback with "Confirm" when thumbs-up is clicked', async () => {
+    const c = makeCommitment({ id: 'fb-002', status: 'in-progress' });
+    render(<CommitPane commitments={[c]} isLoading={false} currentUserId={ALEX_OID} />);
+    fireEvent.click(screen.getByLabelText('Mark as useful'));
+    await waitFor(() => {
+      expect(mockRecordFeedback).toHaveBeenCalledWith(ALEX_OID, 'fb-002', 'Confirm');
+    });
+  });
+
+  it('calls recordFeedback with "FalsePositive" when thumbs-down is clicked', async () => {
+    const c = makeCommitment({ id: 'fb-003', status: 'in-progress' });
+    render(<CommitPane commitments={[c]} isLoading={false} currentUserId={ALEX_OID} />);
+    fireEvent.click(screen.getByLabelText('Not a real task'));
+    await waitFor(() => {
+      expect(mockRecordFeedback).toHaveBeenCalledWith(ALEX_OID, 'fb-003', 'FalsePositive');
+    });
+  });
+
+  it('shows "Marked as useful" confirmation after thumbs-up', async () => {
+    const c = makeCommitment({ id: 'fb-004', status: 'in-progress' });
+    render(<CommitPane commitments={[c]} isLoading={false} currentUserId={ALEX_OID} />);
+    fireEvent.click(screen.getByLabelText('Mark as useful'));
+    await waitFor(() => {
+      expect(screen.getByText('Marked as useful')).toBeInTheDocument();
+    });
+  });
+
+  it('does not call recordFeedback when currentUserId is not provided', async () => {
+    const c = makeCommitment({ id: 'fb-005', status: 'in-progress' });
+    render(<CommitPane commitments={[c]} isLoading={false} />);
+    fireEvent.click(screen.getByLabelText('Mark as useful'));
+    await waitFor(() => {
+      expect(mockRecordFeedback).not.toHaveBeenCalled();
+    });
+  });
+
+  it('silently continues when recordFeedback throws', async () => {
+    mockRecordFeedback.mockRejectedValue(new Error('network'));
+    const c = makeCommitment({ id: 'fb-006', status: 'in-progress' });
+    render(<CommitPane commitments={[c]} isLoading={false} currentUserId={ALEX_OID} />);
+    // Should not throw
+    fireEvent.click(screen.getByLabelText('Mark as useful'));
+    await waitFor(() => {
+      expect(mockRecordFeedback).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -34,6 +34,48 @@ public sealed class FeedbackRepository : IFeedbackRepository
     }
 
     /// <inheritdoc/>
+    public async Task<(int Total, int FalsePositives, double AvgConfidence)> GetAdminStatsAsync(
+        int limit = 2000, CancellationToken ct = default)
+    {
+        var rows = new List<FeedbackEntity>();
+        await foreach (var e in _table.QueryAsync<FeedbackEntity>(cancellationToken: ct))
+        {
+            rows.Add(e);
+            if (rows.Count >= limit) break;
+        }
+        int total          = rows.Count;
+        int falsePositives = rows.Count(r => r.FeedbackType == "FalsePositive");
+        double avgConf     = total > 0 ? rows.Average(r => r.ConfidenceAtFeedback) : 0.0;
+        return (total, falsePositives, avgConf);
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<FeedbackEntity>> GetRecentAsync(
+        string? typeFilter   = null,
+        string? sourceFilter = null,
+        int     limit        = 200,
+        CancellationToken ct = default)
+    {
+        // Build OData filter — cross-partition scan, client-side sort
+        var filters = new List<string>();
+        if (!string.IsNullOrEmpty(typeFilter))   filters.Add($"FeedbackType eq '{typeFilter}'");
+        if (!string.IsNullOrEmpty(sourceFilter)) filters.Add($"SourceType eq '{sourceFilter}'");
+        var odata  = filters.Count > 0 ? string.Join(" and ", filters) : null;
+
+        var rows = new List<FeedbackEntity>();
+        await foreach (var e in _table.QueryAsync<FeedbackEntity>(odata, cancellationToken: ct))
+        {
+            rows.Add(e);
+            if (rows.Count >= limit * 3) break; // over-fetch before sort+trim
+        }
+
+        return rows
+            .OrderByDescending(r => r.RecordedAt)
+            .Take(limit)
+            .ToList();
+    }
+
+    /// <inheritdoc/>
     public async Task DeleteAllForUserAsync(string userHash, CancellationToken ct = default)
     {
         var all = await GetByUserHashAsync(userHash, ct);

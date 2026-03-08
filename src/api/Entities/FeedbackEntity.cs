@@ -32,4 +32,7 @@ public sealed class FeedbackEntity : ITableEntity
 
     /// <summary>NLP confidence score of the commitment at the time feedback was given.</summary>
     public double ConfidenceAtFeedback { get; set; }
+
+    /// <summary>Optional free-text comment from the user (max 200 chars). Null if not provided.</summary>
+    public string? Comment { get; set; }
 }
